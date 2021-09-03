@@ -15,7 +15,7 @@ from cantilever_group import Cantilever
 prob = om.Problem()
 
 # cantilever_group = Cantilever(nNode=11, nElem=10, nDOF=20) # 20 DOF because of cantilever BC
-cantilever_group = Cantilever(nNode=21, nElem=20, nDOF=40) # Increased nodes
+cantilever_group = Cantilever(nNode=41, nElem=40, nDOF=80) # Increased nodes
 # cantilever_group.linear_solver = om.DirectSolver(assemble_jac=True)
 # cantilever_group.nonlinear_solver = om.NonlinearBlockGS(maxiter=100, atol=1e-6, rtol=1e-6, use_aitken=True)
 
@@ -111,8 +111,8 @@ shape3 = ax1.plot(z_towernode, x_towernode_3, label='3rd Mode', c='b', ls='-', m
 # Set labels and legend
 ax1.legend()
 ax1.set_title('Modeshapes from FEA')
-ax1.set_xlabel('Deformation (x)')
-ax1.set_ylabel('Length (z)')
+ax1.set_xlabel('Length (z)')
+ax1.set_ylabel('Deformation (x)')
 ax1.grid()
 
 # ## --- Shapes PLOT after Modal
@@ -161,8 +161,8 @@ all_2der_cspl = ax3.plot(z_nodes, all_cubicspline(z_nodes, 2), label='Spl. 2 der
 # Set labels and legend
 ax3.legend()
 ax3.set_title('3rd Modeshape Derivatives')
-ax3.set_xlabel('Deformation (x)')
-ax3.set_ylabel('Length (z)')
+ax3.set_xlabel('Length (z)')
+ax3.set_ylabel('Deformation (x)')
 ax3.grid()
 
 # Show sketch
