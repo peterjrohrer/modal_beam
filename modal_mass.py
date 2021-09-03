@@ -15,12 +15,12 @@ class ModalMass(ExplicitComponent):
 
         self.add_input('z_towernode', val=np.zeros(nNode), units='m/m')
         self.add_input('z_towerelem', val=np.zeros(nElem), units='m/m')
+        self.add_input('Z_tower', val=np.zeros(nNode), units='m')
         self.add_input('x_towerelem_1', val=np.zeros(nElem), units='m/m')
         self.add_input('x_towerelem_2', val=np.zeros(nElem), units='m/m')
         self.add_input('x_towerelem_3', val=np.zeros(nElem), units='m/m')
         self.add_input('M_tower', val=np.zeros(nElem), units='kg')
         self.add_input('L_tower', val=np.zeros(nElem), units='m')
-        self.add_input('Z_tower', val=np.zeros(nNode), units='m')
 
         self.add_output('M11', val=0., units='kg')
         self.add_output('M12', val=0., units='kg')
@@ -40,7 +40,7 @@ class ModalMass(ExplicitComponent):
         L_tower = inputs['L_tower']
         Z_tower = inputs['Z_tower']
 
-        z_towernode = inputs['z_towernode'] * inputs['Z_tower'][-1] # Add back in dimensionality
+        z_towernode = inputs['z_towernode']
         z_towerelem = inputs['z_towerelem']
         
         x_towerelem_1 = inputs['x_towerelem_1']
@@ -90,7 +90,7 @@ class ModalMass(ExplicitComponent):
         L_tower = inputs['L_tower']
         Z_tower = inputs['Z_tower']
 
-        z_towernode = inputs['z_towernode'] * inputs['Z_tower'][-1] # Add back in dimensionality
+        z_towernode = inputs['z_towernode']
 
         x_towerelem_1 = inputs['x_towerelem_1']
         x_towerelem_2 = inputs['x_towerelem_2']

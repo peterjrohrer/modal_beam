@@ -13,7 +13,6 @@ class ModeshapeElemMass(ExplicitComponent):
         nNode = self.options['nNode']        
         nElem = self.options['nElem']
 
-        self.add_input('Z_tower', val=np.zeros(nNode), units='m')
         self.add_input('L_tower', val=np.zeros(nElem), units='m')
         self.add_input('M_tower', val=np.zeros(nElem), units='kg')
         self.add_input('L_mode_elem', val=np.zeros(nElem), units='m')
@@ -66,7 +65,6 @@ class ModeshapeElemMass(ExplicitComponent):
         partials['mel', 'L_ball_elem'] = np.zeros((352, 10))
         partials['mel', 'L_ball'] = np.zeros(352)
         partials['mel', 'z_sparnode'] = np.zeros((352, 13))
-        partials['mel', 'Z_tower'] = np.zeros((352, 11))
         partials['mel', 'L_mode_elem'] = np.zeros((352, 22))
 
         N_towerelem = len(M_tower)

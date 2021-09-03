@@ -29,7 +29,7 @@ class Beam(ExplicitComponent):
         nNode = self.options['nNode']        
         nElem = self.options['nElem']
 
-        L_per_elem = 11.
+        L_per_elem = 3.3
         L_tower = np.ones(nElem)*L_per_elem
 
         Z_tower = np.concatenate(([0.],np.cumsum(L_tower)))

@@ -38,12 +38,12 @@ class Modeshape(om.Group):
 
         self.add_subsystem('modeshape_elem_length', 
             ModeshapeElemLength(nNode=nNode,nElem=nElem), 
-            promotes_inputs=['z_towernode', 'Z_tower'], 
+            promotes_inputs=['z_towernode'], 
             promotes_outputs=['L_mode_elem'])
 
         self.add_subsystem('modeshape_elem_mass', 
             ModeshapeElemMass(nNode=nNode,nElem=nElem), 
-            promotes_inputs=['Z_tower', 'L_tower', 'M_tower', 'L_mode_elem'], 
+            promotes_inputs=['L_tower', 'M_tower', 'L_mode_elem'], 
             promotes_outputs=['mel'])
 
         self.add_subsystem('modeshape_elem_EI', 
@@ -90,15 +90,15 @@ class Modeshape(om.Group):
         for i in range(1,numModes+1):
             self.add_subsystem('modeshape_%d' % i,
                 Eig2Mode(mode=i,nNode=nNode,nElem=nElem,nDOF=nDOF),
-                promotes_inputs=['eig_vector_1', 'eig_vector_2', 'eig_vector_3', 'z_towernode', 'z_towerelem', 'Z_tower'],
+                promotes_inputs=['eig_vector_1', 'eig_vector_2', 'eig_vector_3', 'z_towernode', 'z_towerelem'],
                 promotes_outputs=['x_towernode_%d' % i, 'x_d_towernode_%d' % i, 'x_towerelem_%d' % i, 'x_d_towerelem_%d' % i, 'x_dd_towerelem_%d' % i])
         
         self.add_subsystem('modal_mass', 
             ModalMass(nNode=nNode,nElem=nElem), 
-            promotes_inputs=['z_towernode', 'z_towerelem', 'x_towerelem_*', 'M_tower', 'L_tower', 'Z_tower'], 
+            promotes_inputs=['z_towernode', 'z_towerelem', 'Z_tower', 'x_towerelem_*', 'M_tower', 'L_tower'], 
             promotes_outputs=['M11', 'M12', 'M13', 'M22', 'M23', 'M33'])
 
         self.add_subsystem('modal_stiffness', 
             ModalStiffness(nNode=nNode,nElem=nElem), 
-            promotes_inputs=['z_towernode', 'z_towerelem', 'Z_tower', 'x_towerelem_*', 'x_d_towerelem_*', 'x_dd_towerelem_*', 'normforce_mode_elem', 'EI_mode_elem'], 
+            promotes_inputs=['z_towernode', 'z_towerelem', 'x_towerelem_*', 'x_d_towerelem_*', 'x_dd_towerelem_*', 'normforce_mode_elem', 'EI_mode_elem'], 
             promotes_outputs=['K11', 'K12', 'K13', 'K22', 'K23', 'K33']) 

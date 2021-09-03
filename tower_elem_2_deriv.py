@@ -16,7 +16,6 @@ class TowerElem2Deriv(ExplicitComponent):
         nElem = self.options['nElem']
 
         self.add_input('z_towernode', val=np.zeros(nNode), units='m/m')
-        self.add_input('Z_tower', val=np.zeros(nNode), units='m')
         self.add_input('x_d_towernode', val=np.zeros(nNode), units='1/m')
 
         self.add_output('x_dd_towerelem', val=np.zeros(nElem), units='1/(m**2)')
@@ -24,7 +23,7 @@ class TowerElem2Deriv(ExplicitComponent):
         self.declare_partials('*', '*')
 
     def compute(self, inputs, outputs):
-        z = inputs['z_towernode']#*inputs['Z_tower'][-1] # Add back in dimensionality
+        z = inputs['z_towernode']
         x_d = inputs['x_d_towernode']
 
         N_tower = len(z)
@@ -40,7 +39,7 @@ class TowerElem2Deriv(ExplicitComponent):
 
     ##TODO Check these partials, add Z_tower partial
     def compute_partials(self, inputs, partials):
-        z = inputs['z_towernode']*inputs['Z_tower'][-1] # Add back in dimensionality
+        z = inputs['z_towernode']
         x_d = inputs['x_d_towernode']
 
         N_tower = len(z)

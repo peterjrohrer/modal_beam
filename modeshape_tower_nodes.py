@@ -24,9 +24,8 @@ class ModeshapeTowerNodes(ExplicitComponent):
     def compute(self, inputs, outputs):
         nNode = self.options['nNode']        
         nElem = self.options['nElem']
-        hub_height = inputs['Z_tower'][-1]
         
-        z_node = inputs['Z_tower']/hub_height
+        z_node = inputs['Z_tower']
         z_elem = np.zeros(nElem)
 
         h = np.zeros(nElem)
@@ -41,13 +40,12 @@ class ModeshapeTowerNodes(ExplicitComponent):
         nNode = self.options['nNode']        
         nElem = self.options['nElem']
         Z_tower = inputs['Z_tower']
-        hub_height = inputs['Z_tower'][-1]
         
         partials['z_towernode', 'Z_tower'] = np.zeros((nNode,nNode))
         
         for i in range(11):
-            partials['z_towernode', 'Z_tower'][i,i] += 1./hub_height 
-            partials['z_towernode', 'Z_tower'][i,-1] += -1. * Z_tower[i]/(hub_height*hub_height)
+            partials['z_towernode', 'Z_tower'][i,i] += 1.
+            partials['z_towernode', 'Z_tower'][i,-1] += -1. * Z_tower[i]
 
         partials['z_towernode', 'Z_tower'][-1,-1] = 0.
 

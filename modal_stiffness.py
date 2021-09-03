@@ -18,7 +18,6 @@ class ModalStiffness(ExplicitComponent):
 
         self.add_input('z_towernode', val=np.zeros(nNode), units='m/m')
         self.add_input('z_towerelem', val=np.zeros(nElem), units='m/m')
-        self.add_input('Z_tower', val=np.zeros(nNode), units='m')
         self.add_input('x_towerelem_1', val=np.zeros(nElem), units='m/m')
         self.add_input('x_towerelem_2', val=np.zeros(nElem), units='m/m')
         self.add_input('x_towerelem_3', val=np.zeros(nElem), units='m/m')
@@ -45,7 +44,7 @@ class ModalStiffness(ExplicitComponent):
         nNode = self.options['nNode']
         nElem = self.options['nElem']
         
-        z_towernode = inputs['z_towernode'] * inputs['Z_tower'][-1] # Add back in dimensionality
+        z_towernode = inputs['z_towernode']
         z_towerelem = inputs['z_towerelem']
         
         x_towerelem_1 = inputs['x_towerelem_1']
@@ -117,8 +116,7 @@ class ModalStiffness(ExplicitComponent):
         nNode = self.options['nNode']
         nElem = self.options['nElem']
         
-        z_towernode = inputs['z_towernode'] * inputs['Z_tower'][-1] # Add back in dimensionality
-        
+        z_towernode = inputs['z_towernode']
         x_d_towerelem_1 = inputs['x_d_towerelem_1']
         x_d_towerelem_2 = inputs['x_d_towerelem_2']
         x_d_towerelem_3 = inputs['x_d_towerelem_3']

@@ -60,17 +60,17 @@ class Eig2Mode(om.Group):
 
         self.add_subsystem('tower_elem_disp', 
             TowerElemDisp(nNode=nNode,nElem=nElem,nDOF=nDOF), 
-            promotes_inputs=['z_towernode', 'z_towerelem', 'Z_tower', 'x_towernode', 'x_d_towernode'], 
+            promotes_inputs=['z_towernode', 'z_towerelem', 'x_towernode', 'x_d_towernode'], 
             promotes_outputs=['x_towerelem'])
 
         self.add_subsystem('tower_elem_1_deriv', 
             TowerElem1Deriv(nNode=nNode,nElem=nElem,nDOF=nDOF), 
-            promotes_inputs=['z_towernode', 'Z_tower', 'x_towernode', 'x_d_towernode'], 
+            promotes_inputs=['z_towernode', 'x_towernode', 'x_d_towernode'], 
             promotes_outputs=['x_d_towerelem'])
 
         self.add_subsystem('tower_elem_2_deriv', 
             TowerElem2Deriv(nNode=nNode,nElem=nElem,nDOF=nDOF), 
-            promotes_inputs=['z_towernode', 'Z_tower', 'x_d_towernode'], 
+            promotes_inputs=['z_towernode', 'x_d_towernode'], 
             promotes_outputs=['x_dd_towerelem'])
 
         self.add_subsystem('modeshape_num',
