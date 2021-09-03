@@ -42,6 +42,8 @@ class GlobalStiffness(ExplicitComponent):
         outputs['K_global'][1, 2] += K23
         outputs['K_global'][2, 2] += K33 
 
+        a = 1
+
     def compute_partials(self, inputs, partials):
         
         partials['K_global', 'K11'] = np.array([1., 0., 0., 0., 0., 0., 0., 0., 0.])

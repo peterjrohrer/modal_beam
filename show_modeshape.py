@@ -22,7 +22,7 @@ cantilever_group = Cantilever(nNode=11, nElem=10, nDOF=20) # 20 DOF because of c
 prob.model.add_subsystem('cantilever', 
     cantilever_group, 
     promotes_inputs=[],
-    promotes_outputs=['M_global', 'K_global',
+    promotes_outputs=['M_global', 'K_global', 'Z_tower', 'D_tower', 'L_tower', 'M_tower', 'tot_M_tower', 'wt_tower',
         'eig_vector_*', 'eig_freq_*', 'z_towernode', 'z_towerelem',
         'x_towernode_*', 'x_d_towernode_*', 'x_towerelem_*', 'x_d_towerelem_*', 'x_dd_towerelem_*',])
 
@@ -131,7 +131,7 @@ shape3 = ax2.plot(eig_vecs_xloc, eig_vecs[:,2], label='3rd Mode', c='b', ls='-',
 
 # Set labels and legend
 ax2.legend()
-ax2.set_title('3rd Modeshape Derivatives')
+ax2.set_title('Modeshapes from Modal')
 ax2.set_xlabel('Deformation (x)')
 ax2.set_ylabel('Length (z)')
 ax2.grid()

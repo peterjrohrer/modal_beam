@@ -50,7 +50,7 @@ class Eig2Mode(om.Group):
 
         tower_node_1_deriv = TowerNode1Deriv(nNode=nNode,nElem=nElem,nDOF=nDOF)
         tower_node_1_deriv.linear_solver = om.ScipyKrylov()
-        tower_node_1_deriv.linear_solver.precon = om.DirectSolver(assemble_jac=True)
+        # tower_node_1_deriv.linear_solver.precon = om.DirectSolver(assemble_jac=True)
         #tower_node_1_deriv.linear_solver = om.DirectSolver(assemble_jac=True)
 
         self.add_subsystem('tower_node_1_deriv', 

@@ -29,17 +29,18 @@ class Beam(ExplicitComponent):
         nNode = self.options['nNode']        
         nElem = self.options['nElem']
 
-        Z_tower = np.linspace(0.,10.,nNode)
+        L_per_elem = 11.
+        L_tower = np.ones(nElem)*L_per_elem
+
+        Z_tower = np.concatenate(([0.],np.cumsum(L_tower)))
         
         D = .25
         D_tower = D * np.ones(nElem)
         
-        L_tower = np.ones(nElem)
-        
         wt = 0.01
         wt_tower = wt * np.ones(nElem)
         
-        M_per_elem = myconst.RHO_STL * np.pi * 0.25 * ((D*D) - ((D - 2.*wt)*(D - 2.*wt)))
+        M_per_elem = L_per_elem * myconst.RHO_STL * np.pi * 0.25 * ((D*D) - ((D - 2.*wt)*(D - 2.*wt)))
         M_tower = M_per_elem * np.ones(nElem)
 
         outputs['Z_tower'] = Z_tower
