@@ -1,3 +1,4 @@
+#%% Run as Notebook
 import numpy as np
 import openmdao.api as om
 import myconstants as myconst
@@ -46,6 +47,7 @@ M_glob_inv = np.linalg.inv(M_glob)
 eig_mat = np.matmul(M_glob_inv, K_glob)
 eig_vals_raw, eig_vecs = np.linalg.eig(eig_mat)
 eig_vals = np.sqrt(np.real(np.sort(eig_vals_raw))) 
+eig_vecs_xloc = np.linspace(0,1,3)
 
 print('Eigenfrequencies: %3.3f rad/s, %3.3f rad/s, %3.3f rad/s' % (eig_vals[0], eig_vals[1], eig_vals[2]))
 
@@ -97,7 +99,7 @@ all_cubicspline = CubicSpline(z_nodes, x_nodes, bc_type=((1,0.),(1,0.)))
 # for i in range(1,99):
 #     x_dd_lin[i] = (x_d_lin[i+1] - x_d_lin[i-1])/(2.*h)
 
-## --- Shapes PLOT
+## --- Shapes PLOT from FEA
 font = {'size': 16}
 plt.rc('font', **font)
 fig1, ax1 = plt.subplots(figsize=(9,6))
@@ -109,25 +111,18 @@ shape3 = ax1.plot(z_towernode, x_towernode_3, label='3rd Mode', c='b', ls='-', m
 
 # Set labels and legend
 ax1.legend()
-ax1.set_title('Modeshapes')
+ax1.set_title('Modeshapes from FEA')
 ax1.set_xlabel('Deformation (x)')
 ax1.set_ylabel('Length (z)')
 ax1.grid()
 
-## --- Derivatives PLOT
+## --- Shapes PLOT after Modal
 fig2, ax2 = plt.subplots(figsize=(10,6))
 
-# Plot tower
-tower_node = ax2.plot(z_towernode, x_towernode_3, label='Nodes', c='r', ls='-', marker='.', ms=10, mfc='r', alpha=0.7)
-all_cspl = ax2.plot(z_nodes, all_cubicspline(z_nodes), label='Spl.', c='k', ls='-', marker='.', ms=10, mfc='r', alpha=0.7)
-
-tower_1der_elem = ax2.plot(z_towerelem, x_d_towerelem_3, label='1 der', c='g', ls='-', marker='.', ms=10, mfc='g', alpha=0.7)
-all_1der_cspl = ax2.plot(z_nodes, all_cubicspline(z_nodes, 1), label='Spl. 1 der', c='k', ls='-', marker='.', ms=10, mfc='g', alpha=0.7)
-# fd_1der = ax.plot(x_d_lin, z_lin, label='FD', c='k', ls='-', marker='.', ms=7, mfc='g', alpha=0.7)
-
-tower_2der_elem = ax2.plot(z_towerelem, x_dd_towerelem_3, label='2 der', c='b', ls='-', marker='.', ms=10, mfc='b', alpha=0.7)
-all_2der_cspl = ax2.plot(z_nodes, all_cubicspline(z_nodes, 2), label='Spl. 2 der', c='k', ls='-', marker='.', ms=10, mfc='b', alpha=0.7)
-# fd_2der = ax.plot(x_dd_lin, z_lin, label='FD2', c='k', ls='-', marker='.', ms=7, mfc='c', alpha=0.7)
+# Plot shapes
+shape1 = ax2.plot(eig_vecs_xloc, eig_vecs[:,0], label='1st Mode', c='r', ls='-', marker='.', ms=10, mfc='r', alpha=0.7)
+shape2 = ax2.plot(eig_vecs_xloc, eig_vecs[:,1], label='2nd Mode', c='g', ls='-', marker='.', ms=10, mfc='g', alpha=0.7)
+shape3 = ax2.plot(eig_vecs_xloc, eig_vecs[:,2], label='3rd Mode', c='b', ls='-', marker='.', ms=10, mfc='b', alpha=0.7)
 
 # Set axis limits
 # ax.set_xlim([-2, 4])
@@ -143,6 +138,36 @@ ax2.grid()
 
 # Show sketch
 plt.show()
+
+# ## --- Derivatives PLOT
+# fig3, ax3 = plt.subplots(figsize=(10,6))
+
+# # Plot tower
+# tower_node = ax3.plot(z_towernode, x_towernode_3, label='Nodes', c='r', ls='-', marker='.', ms=10, mfc='r', alpha=0.7)
+# all_cspl = ax3.plot(z_nodes, all_cubicspline(z_nodes), label='Spl.', c='k', ls='-', marker='.', ms=10, mfc='r', alpha=0.7)
+
+# tower_1der_elem = ax3.plot(z_towerelem, x_d_towerelem_3, label='1 der', c='g', ls='-', marker='.', ms=10, mfc='g', alpha=0.7)
+# all_1der_cspl = ax3.plot(z_nodes, all_cubicspline(z_nodes, 1), label='Spl. 1 der', c='k', ls='-', marker='.', ms=10, mfc='g', alpha=0.7)
+# # fd_1der = ax.plot(x_d_lin, z_lin, label='FD', c='k', ls='-', marker='.', ms=7, mfc='g', alpha=0.7)
+
+# tower_2der_elem = ax3.plot(z_towerelem, x_dd_towerelem_3, label='2 der', c='b', ls='-', marker='.', ms=10, mfc='b', alpha=0.7)
+# all_2der_cspl = ax3.plot(z_nodes, all_cubicspline(z_nodes, 2), label='Spl. 2 der', c='k', ls='-', marker='.', ms=10, mfc='b', alpha=0.7)
+# # fd_2der = ax.plot(x_dd_lin, z_lin, label='FD2', c='k', ls='-', marker='.', ms=7, mfc='c', alpha=0.7)
+
+# # Set axis limits
+# # ax.set_xlim([-2, 4])
+# # ax.set_ylim([-1, 1.5])
+# # ax.set_aspect('equal')
+
+# # Set labels and legend
+# ax3.legend()
+# ax3.set_title('3rd Modeshape Derivatives')
+# ax3.set_xlabel('Deformation (x)')
+# ax3.set_ylabel('Length (z)')
+# ax3.grid()
+
+# # Show sketch
+# plt.show()
 
 # SHOW SHAPES
 # font = {'size': 16}
@@ -190,3 +215,4 @@ plt.show()
 # fname = 'modeshapes'
 # # plt.savefig(os.path.join(my_path,(fname+'.png')), dpi=400, format='png')
 # # plt.savefig(os.path.join(my_path,(fname+'.eps')), format='eps')
+# %%
