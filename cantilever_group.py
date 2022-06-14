@@ -37,7 +37,8 @@ class Cantilever(Group):
                 'x_beamnode_*', 'x_d_beamnode_*', 
                 'x_beamelem_*', 'x_d_beamelem_*', 'x_dd_beamelem_*',
                 'M11', 'M12', 'M13', 'M22', 'M23', 'M33', 
-                'K11', 'K12', 'K13', 'K22', 'K23', 'K33'])
+                'K11', 'K12', 'K13', 'K22', 'K23', 'K33',
+                'full_eig_val'])
 
         self.add_subsystem('global_mass',
             GlobalMass(),

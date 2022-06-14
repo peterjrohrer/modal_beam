@@ -13,6 +13,7 @@ from modeshape_glob_stiff import ModeshapeGlobStiff
 from modeshape_M_inv import ModeshapeMInv
 from modeshape_eigmatrix import ModeshapeEigmatrix
 from modeshape_eigvector import ModeshapeEigvector
+from modeshape_eig_full import ModeshapeEigen
 
 from eigen_to_mode_group import Eig2Mode
 
@@ -70,6 +71,11 @@ class Modeshape(om.Group):
             ModeshapeGlobStiff(nNode=nNode,nElem=nElem,nDOF=nDOF), 
             promotes_inputs=['kel'], 
             promotes_outputs=['K_mode'])
+
+        self.add_subsystem('modeshape_eig_full',
+            ModeshapeEigen(nNode=nNode,nElem=nElem,nDOF=nDOF),
+            promotes_inputs=['M_mode', 'K_mode'],
+            promotes_outputs=['full_eig_vector', 'full_eig_val'])
 
         self.add_subsystem('modeshape_M_inv', 
             ModeshapeMInv(nNode=nNode,nElem=nElem,nDOF=nDOF), 

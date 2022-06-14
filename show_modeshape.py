@@ -23,7 +23,7 @@ prob.model.add_subsystem('cantilever',
     promotes_inputs=[],
     promotes_outputs=['M_global', 'K_global', 'Z_beam', 'D_beam', 'L_beam', 'M_beam', 'tot_M_beam', 'wt_beam',
         'eig_vector_*', 'eig_freq_*', 'z_beamnode', 'z_beamelem',
-        'x_beamnode_*', 'x_d_beamnode_*', 'x_beamelem_*', 'x_d_beamelem_*', 'x_dd_beamelem_*',])
+        'x_beamnode_*', 'x_d_beamnode_*', 'x_beamelem_*', 'x_d_beamelem_*', 'x_dd_beamelem_*','full_eig_val'])
 
 #  Set inputs
 # prob.model.set_input_defaults('water_depth', val=10., units='m')
@@ -32,6 +32,10 @@ prob.model.add_subsystem('cantilever',
 prob.setup()
 prob.set_solver_print(1)
 prob.run_model()
+
+print('---')
+print(np.sqrt(1./prob['full_eig_val']))
+print('---')
 
 print('Mode 1 Nat. Period: %3.2f s, (freq: %3.3f rad/s, %3.3f Hz)' % (1./float(prob['eig_freq_1']), (2*np.pi*float(prob['eig_freq_1'])), (float(prob['eig_freq_1']))))
 print('Mode 2 Nat. Period: %3.2f s, (freq: %3.3f rad/s, %3.3f Hz)' % (1./float(prob['eig_freq_2']), (2*np.pi*float(prob['eig_freq_2'])), (float(prob['eig_freq_2']))))
