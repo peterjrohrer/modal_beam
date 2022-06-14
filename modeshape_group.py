@@ -95,10 +95,10 @@ class Modeshape(om.Group):
         
         self.add_subsystem('modal_mass', 
             ModalMass(nNode=nNode,nElem=nElem), 
-            promotes_inputs=['z_beamnode', 'z_beamelem', 'Z_beam', 'x_beamelem_*', 'M_beam', 'L_beam'], 
+            promotes_inputs=['M_beam', 'x_beamelem_*'], 
             promotes_outputs=['M11', 'M12', 'M13', 'M22', 'M23', 'M33'])
 
         self.add_subsystem('modal_stiffness', 
             ModalStiffness(nNode=nNode,nElem=nElem), 
-            promotes_inputs=['z_beamnode', 'z_beamelem', 'x_beamelem_*', 'x_d_beamelem_*', 'x_dd_beamelem_*', 'normforce_mode_elem', 'EI_mode_elem'], 
+            promotes_inputs=['L_beam', 'x_d_beamelem_*', 'x_dd_beamelem_*', 'normforce_mode_elem', 'EI_mode_elem'], 
             promotes_outputs=['K11', 'K12', 'K13', 'K22', 'K23', 'K33']) 

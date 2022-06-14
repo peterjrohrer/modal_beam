@@ -37,7 +37,6 @@ class ModeshapeElemLength(ExplicitComponent):
         N_beamelem = len(z_beamnode) - 1
 
         partials['L_mode_elem', 'z_beamnode'] = np.zeros((nElem, nNode))
-        partials['L_mode_elem', 'Z_beam'] = np.zeros((nElem, nNode))
 
         for i in range(N_beamelem):
             partials['L_mode_elem', 'z_beamnode'][i, i] = -1.

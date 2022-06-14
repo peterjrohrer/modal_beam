@@ -38,10 +38,7 @@ class GlobalMass(ExplicitComponent):
         outputs['M_global'][1, 2] += M23
         outputs['M_global'][2, 0] += M13
         outputs['M_global'][2, 1] += M23
-        outputs['M_global'][2, 2] += M33
-
-        a = 1
-        
+        outputs['M_global'][2, 2] += M33  
 
     def compute_partials(self, inputs, partials):
         

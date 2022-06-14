@@ -49,24 +49,20 @@ class ModeshapeGlobMass(ExplicitComponent):
         outputs['M_mode'] = M_mode_all[2:,2:]
 
     def compute_partials(self, inputs, partials):
-        
-        mel = inputs['mel']
-        
-        N_elem = len(mel)
+        nElem = self.options['nElem']
+        nDOF = self.options['nDOF']
+        partials['M_mode', 'mel'] = np.zeros(((nDOF * nDOF), (nElem*16)))
+        LD = np.zeros((nElem, 4))
 
-        partials['M_mode', 'mel'] = np.zeros((2116, 352))
-
-        LD = np.zeros((N_elem, 4))
-
-        for i in range(N_elem):
+        for i in range(nElem):
             for j in range(4):
                 LD[i, j] = j + 2 * i
 
-        for i in range(N_elem):
+        for i in range(nElem-1):
             for j in range(4):
                 row = int(LD[i][j])
                 if row > -1:
                     for p in range(4):
                         col = int(LD[i][p])
                         if col > -1:
-                            partials['M_mode', 'mel'][46 * row + col][16 * i + 4 * j + p] += 1.
+                            partials['M_mode', 'mel'][(nDOF * row + col)][16 * i + 4 * j + p] += 1.

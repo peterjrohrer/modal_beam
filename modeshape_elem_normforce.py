@@ -19,8 +19,6 @@ class ModeshapeElemNormforce(ExplicitComponent):
 
         self.add_output('normforce_mode_elem', val=np.zeros(nElem), units='N')
 
-        self.declare_partials('*', '*')
-
     def compute(self, inputs, outputs):
 
         nElem = self.options['nElem']
@@ -39,20 +37,4 @@ class ModeshapeElemNormforce(ExplicitComponent):
         # Cantilevered
         outputs['normforce_mode_elem'] = np.zeros(nElem)
 
-
-    ##TODO Fix these partials!!
-    def compute_partials(self, inputs, partials):
-
-        M_beam = inputs['M_beam']
-        tot_M_beam = inputs['tot_M_beam']
-
-        N_beamelem = len(M_beam)
-
-        # partials['normforce_mode_elem', 'M_beam'] = np.zeros((22, 10))
-        partials['normforce_mode_elem', 'tot_M_beam'] = np.zeros(22)
-
-        for i in range(N_beamelem):
-            partials['normforce_mode_elem', 'tot_M_beam'][i] = -1. * myconst.G
-
-            for j in range(i):
-                partials['normforce_mode_elem', 'M_beam'][i, j] += myconst.G
+    ## No partials!!

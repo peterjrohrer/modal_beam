@@ -40,9 +40,11 @@ class ModeshapeNum(ExplicitComponent):
 
     def compute_partials(self, inputs, partials):
         mode_num = self.options['mode']
+        nNode = self.options['nNode']
+        nElem = self.options['nElem']
 
-        partials['x_beamnode_%d' % mode_num, 'x_beamnode'] = np.ones(11)
-        partials['x_d_beamnode_%d' % mode_num, 'x_d_beamnode'] = np.ones(11)
-        partials['x_beamelem_%d' % mode_num, 'x_beamelem'] = np.ones(10)
-        partials['x_d_beamelem_%d' % mode_num, 'x_d_beamelem'] = np.ones(10)
-        partials['x_dd_beamelem_%d' % mode_num, 'x_dd_beamelem'] = np.ones(10)
+        partials['x_beamnode_%d' % mode_num, 'x_beamnode'] = np.identity(nNode)
+        partials['x_d_beamnode_%d' % mode_num, 'x_d_beamnode'] = np.identity(nNode)
+        partials['x_beamelem_%d' % mode_num, 'x_beamelem'] = np.identity(nElem)
+        partials['x_d_beamelem_%d' % mode_num, 'x_d_beamelem'] = np.identity(nElem)
+        partials['x_dd_beamelem_%d' % mode_num, 'x_dd_beamelem'] = np.identity(nElem)
