@@ -1,7 +1,7 @@
 import numpy as np
 import openmdao.api as om
 
-from modeshape_tower_nodes import ModeshapeTowerNodes
+from modeshape_beam_nodes import ModeshapeBeamNodes
 from modeshape_elem_length import ModeshapeElemLength
 from modeshape_elem_mass import ModeshapeElemMass
 from modeshape_elem_EI import ModeshapeElemEI
@@ -31,29 +31,29 @@ class Modeshape(om.Group):
         nElem = self.options['nElem']        
         nDOF = self.options['nDOF']        
 
-        self.add_subsystem('modeshape_tower_nodes',
-            ModeshapeTowerNodes(nNode=nNode,nElem=nElem), 
-            promotes_inputs=['Z_tower'], 
-            promotes_outputs=['z_towernode', 'z_towerelem'])
+        self.add_subsystem('modeshape_beam_nodes',
+            ModeshapeBeamNodes(nNode=nNode,nElem=nElem), 
+            promotes_inputs=['Z_beam'], 
+            promotes_outputs=['z_beamnode', 'z_beamelem'])
 
         self.add_subsystem('modeshape_elem_length', 
             ModeshapeElemLength(nNode=nNode,nElem=nElem), 
-            promotes_inputs=['z_towernode'], 
+            promotes_inputs=['z_beamnode'], 
             promotes_outputs=['L_mode_elem'])
 
         self.add_subsystem('modeshape_elem_mass', 
             ModeshapeElemMass(nNode=nNode,nElem=nElem), 
-            promotes_inputs=['L_tower', 'M_tower', 'L_mode_elem'], 
+            promotes_inputs=['L_beam', 'M_beam', 'L_mode_elem'], 
             promotes_outputs=['mel'])
 
         self.add_subsystem('modeshape_elem_EI', 
             ModeshapeElemEI(nNode=nNode,nElem=nElem), 
-            promotes_inputs=['D_tower', 'wt_tower'], 
+            promotes_inputs=['D_beam', 'wt_beam'], 
             promotes_outputs=['EI_mode_elem'])
 
         self.add_subsystem('modeshape_elem_normforce', 
             ModeshapeElemNormforce(nNode=nNode,nElem=nElem), 
-            promotes_inputs=['M_tower', 'tot_M_tower'], 
+            promotes_inputs=['M_beam', 'tot_M_beam'], 
             promotes_outputs=['normforce_mode_elem'])
         
         self.add_subsystem('modeshape_elem_stiff', 
@@ -90,15 +90,15 @@ class Modeshape(om.Group):
         for i in range(1,numModes+1):
             self.add_subsystem('modeshape_%d' % i,
                 Eig2Mode(mode=i,nNode=nNode,nElem=nElem,nDOF=nDOF),
-                promotes_inputs=['eig_vector_1', 'eig_vector_2', 'eig_vector_3', 'z_towernode', 'z_towerelem'],
-                promotes_outputs=['x_towernode_%d' % i, 'x_d_towernode_%d' % i, 'x_towerelem_%d' % i, 'x_d_towerelem_%d' % i, 'x_dd_towerelem_%d' % i])
+                promotes_inputs=['eig_vector_1', 'eig_vector_2', 'eig_vector_3', 'z_beamnode', 'z_beamelem'],
+                promotes_outputs=['x_beamnode_%d' % i, 'x_d_beamnode_%d' % i, 'x_beamelem_%d' % i, 'x_d_beamelem_%d' % i, 'x_dd_beamelem_%d' % i])
         
         self.add_subsystem('modal_mass', 
             ModalMass(nNode=nNode,nElem=nElem), 
-            promotes_inputs=['z_towernode', 'z_towerelem', 'Z_tower', 'x_towerelem_*', 'M_tower', 'L_tower'], 
+            promotes_inputs=['z_beamnode', 'z_beamelem', 'Z_beam', 'x_beamelem_*', 'M_beam', 'L_beam'], 
             promotes_outputs=['M11', 'M12', 'M13', 'M22', 'M23', 'M33'])
 
         self.add_subsystem('modal_stiffness', 
             ModalStiffness(nNode=nNode,nElem=nElem), 
-            promotes_inputs=['z_towernode', 'z_towerelem', 'x_towerelem_*', 'x_d_towerelem_*', 'x_dd_towerelem_*', 'normforce_mode_elem', 'EI_mode_elem'], 
+            promotes_inputs=['z_beamnode', 'z_beamelem', 'x_beamelem_*', 'x_d_beamelem_*', 'x_dd_beamelem_*', 'normforce_mode_elem', 'EI_mode_elem'], 
             promotes_outputs=['K11', 'K12', 'K13', 'K22', 'K23', 'K33']) 

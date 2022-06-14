@@ -51,4 +51,4 @@ comp_to_check = 'wind_wave_group.substructure.modeshape_group.modeshape_elem_nor
 check_partials_data = prob.check_partials(method='fd',form='central',step=1e-6, includes=comp_to_check, show_only_incorrect=True, compact_print=True)
 # check_partials_data = prob.check_partials(method='cs', includes=comp_to_check, show_only_incorrect=True, compact_print=True)
 
-partial_deriv_plot('normforce_mode_elem', 'Z_tower', check_partials_data, binary=False)
+partial_deriv_plot('normforce_mode_elem', 'Z_beam', check_partials_data, binary=False)

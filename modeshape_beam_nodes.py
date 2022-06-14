@@ -4,7 +4,7 @@ import numpy as np
 from openmdao.api import ExplicitComponent
 
 
-class ModeshapeTowerNodes(ExplicitComponent):
+class ModeshapeBeamNodes(ExplicitComponent):
 
     def initialize(self):
         self.options.declare('nNode', types=int)
@@ -14,10 +14,10 @@ class ModeshapeTowerNodes(ExplicitComponent):
         nNode = self.options['nNode']        
         nElem = self.options['nElem']
 
-        self.add_input('Z_tower', val=np.zeros(nNode), units='m')
+        self.add_input('Z_beam', val=np.zeros(nNode), units='m')
 
-        self.add_output('z_towernode', val=np.zeros(nNode), units='m/m')
-        self.add_output('z_towerelem', val=np.zeros(nElem), units='m/m')
+        self.add_output('z_beamnode', val=np.zeros(nNode), units='m/m')
+        self.add_output('z_beamelem', val=np.zeros(nElem), units='m/m')
 
         self.declare_partials('*', '*')
 
@@ -25,7 +25,7 @@ class ModeshapeTowerNodes(ExplicitComponent):
         nNode = self.options['nNode']        
         nElem = self.options['nElem']
         
-        z_node = inputs['Z_tower']
+        z_node = inputs['Z_beam']
         z_elem = np.zeros(nElem)
 
         h = np.zeros(nElem)
@@ -33,19 +33,19 @@ class ModeshapeTowerNodes(ExplicitComponent):
             h[i] = (z_node[i + 1] - z_node[i])/2.
             z_elem[i] = z_node[i]+h[i]
 
-        outputs['z_towernode'] = z_node
-        outputs['z_towerelem'] = z_elem
+        outputs['z_beamnode'] = z_node
+        outputs['z_beamelem'] = z_elem
 
     def compute_partials(self, inputs, partials):
         nNode = self.options['nNode']        
         nElem = self.options['nElem']
-        Z_tower = inputs['Z_tower']
+        Z_beam = inputs['Z_beam']
         
-        partials['z_towernode', 'Z_tower'] = np.zeros((nNode,nNode))
+        partials['z_beamnode', 'Z_beam'] = np.zeros((nNode,nNode))
         
         for i in range(11):
-            partials['z_towernode', 'Z_tower'][i,i] += 1.
-            partials['z_towernode', 'Z_tower'][i,-1] += -1. * Z_tower[i]
+            partials['z_beamnode', 'Z_beam'][i,i] += 1.
+            partials['z_beamnode', 'Z_beam'][i,-1] += -1. * Z_beam[i]
 
-        partials['z_towernode', 'Z_tower'][-1,-1] = 0.
+        partials['z_beamnode', 'Z_beam'][-1,-1] = 0.
 
