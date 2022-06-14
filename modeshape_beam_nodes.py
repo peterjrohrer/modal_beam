@@ -21,31 +21,39 @@ class ModeshapeBeamNodes(ExplicitComponent):
 
         self.declare_partials('*', '*')
 
+    def setup_partials(self):
+        self.declare_partials('z_beamnode', 'Z_beam')
+        self.declare_partials('z_beamelem', 'Z_beam')
+
     def compute(self, inputs, outputs):
         nNode = self.options['nNode']        
         nElem = self.options['nElem']
-        
-        z_node = inputs['Z_beam']
-        z_elem = np.zeros(nElem)
+
+        outputs['z_beamnode'] = inputs['Z_beam']
+        outputs['z_beamelem'] = np.zeros(nElem)
 
         h = np.zeros(nElem)
         for i in range(len(h)):
-            h[i] = (z_node[i + 1] - z_node[i])/2.
-            z_elem[i] = z_node[i]+h[i]
-
-        outputs['z_beamnode'] = z_node
-        outputs['z_beamelem'] = z_elem
+            h[i] = inputs['Z_beam'][i + 1] - inputs['Z_beam'][i]
+            outputs['z_beamelem'][i] = inputs['Z_beam'][i]+(h[i]/2.)
 
     def compute_partials(self, inputs, partials):
         nNode = self.options['nNode']        
         nElem = self.options['nElem']
-        Z_beam = inputs['Z_beam']
-        
-        partials['z_beamnode', 'Z_beam'] = np.zeros((nNode,nNode))
-        
-        for i in range(11):
-            partials['z_beamnode', 'Z_beam'][i,i] += 1.
-            partials['z_beamnode', 'Z_beam'][i,-1] += -1. * Z_beam[i]
 
-        partials['z_beamnode', 'Z_beam'][-1,-1] = 0.
+        z_node = inputs['Z_beam']
+        z_elem = np.zeros(nElem)
+
+        partials['z_beamnode', 'Z_beam'] = np.eye(nNode)
+        partials['z_beamelem', 'Z_beam'] = np.zeros((nElem,nNode))
+        
+        h = np.zeros(nElem)
+        for i in range(len(h)):
+            h[i] = z_node[i + 1] - z_node[i]
+            z_elem[i] = z_node[i]+(h[i]/2.)
+            partials['z_beamelem', 'Z_beam'][i,i] += 0.5
+            if not i == 0 :
+                partials['z_beamelem', 'Z_beam'][i-1,i] += 0.5
+        
+        partials['z_beamelem', 'Z_beam'][-1,-1] += 0.5
 

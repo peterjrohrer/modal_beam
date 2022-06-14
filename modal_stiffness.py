@@ -83,8 +83,6 @@ class ModalStiffness(ExplicitComponent):
             outputs['K22'] += dz * norm_force[i] * x_d_beamelem_2[i] * x_d_beamelem_2[i] 
             outputs['K23'] += dz * norm_force[i] * x_d_beamelem_2[i] * x_d_beamelem_3[i] 
             outputs['K33'] += dz * norm_force[i] * x_d_beamelem_3[i] * x_d_beamelem_3[i] 
-
-        a = 1
         
     ##TODO add Z_beam partials
     def compute_partials(self, inputs, partials):

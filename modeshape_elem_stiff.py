@@ -85,10 +85,26 @@ class ModeshapeElemStiff(ExplicitComponent):
 			dkel_dLe[1, 3] = dkel_dLe[3, 1] = -2. / L[i]**2. * EI[i]
 			partials['kel', 'EI_mode_elem'][16 * i:16 * i + 16, i] += ke.flatten()
 
-			if L[i] < 0.5:
-				partials['kel', 'EI_mode_elem'][16 * i:16 * i + 16, i] = partials['kel', 'EI_mode_elem'][16 * i:16 * i + 16, i] / 1000.
+			# if L[i] < 0.5:
+			# 	partials['kel', 'EI_mode_elem'][16 * i:16 * i + 16, i] = partials['kel', 'EI_mode_elem'][16 * i:16 * i + 16, i] / 1000.
+
+			kg[0, 0] = kg[2, 2] = 6. / (5. * L[i])
+			kg[0, 2] = kg[2, 0] = -6. / (5. * L[i])
+			kg[0, 1] = kg[1, 0] = kg[0, 3] = kg[3, 0] = 1. / 10.
+			kg[1, 2] = kg[2, 1] = kg[2, 3] = kg[3, 2] = -1. / 10.
+			kg[1, 1] = kg[3, 3] = 2. * L[i] / 15.
+			kg[1, 3] = kg[3, 1] = -L[i] / 30.
+			dkel_dLe[0, 0] += -6. / (5. * L[i]**2.) * norm_force[i]
+			dkel_dLe[0, 2] += 6. / (5. * L[i]**2.) * norm_force[i]
+			dkel_dLe[1, 1] += 2. / 15. * norm_force[i]
+			dkel_dLe[1, 3] += -1. / 30. * norm_force[i]
+			dkel_dLe[2, 2] += -6. / (5. * L[i]**2.) * norm_force[i]
+			dkel_dLe[2, 0] += 6. / (5. * L[i]**2.) * norm_force[i]
+			dkel_dLe[3, 3] += 2. / 15. * norm_force[i]
+			dkel_dLe[3, 1] += -1. / 30. * norm_force[i]
+			partials['kel', 'normforce_mode_elem'][16 * i:16 * i + 16, i] += kg.flatten()
 
 			partials['kel', 'L_mode_elem'][16 * i:16 * i + 16, i] += dkel_dLe.flatten()
 
-			if L[i] < 0.5:
-				partials['kel', 'L_mode_elem'][16 * i:16 * i + 16, i] = partials['kel', 'L_mode_elem'][16 * i:16 * i + 16, i] / 1000.
+			# if L[i] < 0.5:
+			# 	partials['kel', 'L_mode_elem'][16 * i:16 * i + 16, i] = partials['kel', 'L_mode_elem'][16 * i:16 * i + 16, i] / 1000.

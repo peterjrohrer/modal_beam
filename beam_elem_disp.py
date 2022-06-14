@@ -21,50 +21,68 @@ class BeamElemDisp(ExplicitComponent):
 
         self.add_output('x_beamelem', val=np.zeros(nElem), units='m/m')
 
+    def setup_partials(self):
         self.declare_partials('*', '*')
 
     def compute(self, inputs, outputs):
+        nNode = self.options['nNode']
+        nElem = self.options['nElem']
+
         z = inputs['z_beamnode']
-        z_elem = inputs['z_beamelem']
+        # z_elem = inputs['z_beamelem']
         x = inputs['x_beamnode']
         x_d = inputs['x_d_beamnode']
 
-        N_beam = len(z)
-
-        h = np.zeros(N_beam - 1)
-        for i in range(N_beam - 1):
+        h = np.zeros(nElem)
+        # s = np.zeros(nElem)
+        for i in range(nElem):
             h[i] = z[i + 1] - z[i]
+            # s[i] = z_elem[i] - z[i]
 
-        outputs['x_beamelem'] = np.zeros(N_beam - 1)
+        outputs['x_beamelem'] = np.zeros(nElem)
 
-        for i in range(N_beam - 1):
-            # # Original
-            # outputs['x_beamelem'][i] = (x[i + 1] + x[i]) / 2. - 1. / 8. * h[i] * (x_d[i + 1] - x_d[i])
-            # Applying spline
-            outputs['x_beamelem'][i] = ((x_d[i]/6.) * (((z[i+1] - z_elem[i])**3)/h[i] - (h[i]*(z[i+1] - z_elem[i])))) + ((x_d[i+1]/6.) * (((z_elem[i] - z[i])**3)/h[i] - (h[i]*(z_elem[i] - z[i])))) + (x[i] * (z[i+1] - z_elem[i])/h[i]) + (x[i + 1] * (z_elem[i] - z[i])/h[i])
+        for i in range(nElem):
+            # # Spline Interpolation, pchip from page 29 of https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.296.7452&rep=rep1&type=pdf
+            # # Partials for this are really tough
+            # outputs['x_beamelem'][i] = (((3.*h[i]*s[i]*s[i] - 2.*s[i]**3)/(h[i]**3))*x[i+1]) + (((h[i]**3 - 3.*h[i]*s[i]*s[i] + 2.*s[i]**3)/(h[i]**3))*x[i]) + (((s[i]*s[i]*(s[i]-h[i]))/(h[i]**2))*x_d[i+1]) + (((s[i]*(s[i]-h[i])*(s[i]-h[i]))/(h[i]**2))*x_d[i])
+            
+            # Only using one of the derivatives
+            # outputs['x_beamelem'][i] = x[i] + (x_d[i]*s[i]) + (((s[i]*s[i])/(h[i]*h[i]))*((x[i+1]-x[i]) - (x_d[i]*h[i])))
 
-    ##TODO Check these partials, add Z_beam partial
+            # Using no element locations
+            outputs['x_beamelem'][i] = (x[i+1] + x[i])/2. - (1./8.)*h[i]*(x_d[i+1] - x_d[i])
+            
     def compute_partials(self, inputs, partials):
+        nNode = self.options['nNode']
+        nElem = self.options['nElem']
+        
         z = inputs['z_beamnode']
+        # z_elem = inputs['z_beamelem']
         x = inputs['x_beamnode']
         x_d = inputs['x_d_beamnode']
 
-        N_beam = len(z)
-
-        h = np.zeros(N_beam - 1)
-        for i in range(N_beam - 1):
+        h = np.zeros(nElem)
+        # s = np.zeros(nElem)
+        for i in range(nElem):
             h[i] = z[i + 1] - z[i]
+            # s[i] = z_elem[i] - z[i]
 
-        partials['x_beamelem', 'z_beamnode'] = np.zeros((N_beam - 1, N_beam))
-        partials['x_beamelem', 'x_beamnode'] = np.zeros((N_beam - 1, N_beam))
-        partials['x_beamelem', 'x_d_beamnode'] = np.zeros((N_beam - 1, N_beam))
 
-        for i in range(N_beam - 1):
-            partials['x_beamelem', 'z_beamnode'][i, i] = 1. / 8. * (x_d[i + 1] - x_d[i])
-            partials['x_beamelem', 'z_beamnode'][i, i + 1] = -1. / 8. * (x_d[i + 1] - x_d[i])
+        partials['x_beamelem', 'z_beamnode'] = np.zeros((nElem, nNode))
+        # partials['x_beamelem', 'z_beamelem'] = np.zeros((nElem, nElem))
+        partials['x_beamelem', 'x_beamnode'] = np.zeros((nElem, nNode))
+        partials['x_beamelem', 'x_d_beamnode'] = np.zeros((nElem, nNode))
+        
+        x_beamelem = np.zeros(nElem)
+        for i in range(nElem):
+            # Using no derivatives
+            x_beamelem[i] = (x[i+1] + x[i])/2. - (1./8.)*h[i]*(x_d[i+1] - x_d[i])
 
-            partials['x_beamelem', 'x_beamnode'][i, i] = 1. / 2.
-            partials['x_beamelem', 'x_beamnode'][i, i + 1] = 1. / 2.
+            partials['x_beamelem', 'x_beamnode'][i, i] = (1./2.)
+            partials['x_beamelem', 'x_beamnode'][i, i + 1] = (1./2.)
 
-            partials['x_beamelem', 'x_d_beamnode'][i, i] = 1. / 8. * h[i]
-            partials['x_beamelem', 'x_d_beamnode'][i, i + 1] = -1. / 8. * h[i]
+            partials['x_beamelem', 'x_d_beamnode'][i, i] = (1./8.)*h[i]
+            partials['x_beamelem', 'x_d_beamnode'][i, i+1] = (-1./8.)*h[i]
+
+            partials['x_beamelem', 'z_beamnode'][i, i] = (1./8.) * (x_d[i+1] - x_d[i])
+            partials['x_beamelem', 'z_beamnode'][i, i + 1] = (-1./8.) * (x_d[i+1] - x_d[i])

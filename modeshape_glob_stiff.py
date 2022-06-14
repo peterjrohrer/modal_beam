@@ -48,10 +48,13 @@ class ModeshapeGlobStiff(ExplicitComponent):
         outputs['K_mode'] = K_mode_all[2:,2:]
         
     def compute_partials(self, inputs, partials):
+        nNode = self.options['nNode']
         nElem = self.options['nElem']
         nDOF = self.options['nDOF']
         partials['K_mode', 'kel'] = np.zeros(((nDOF * nDOF), (nElem*16)))
         LD = np.zeros((nElem, 4))
+
+        K_mode_all = np.zeros(((2*nNode*2*nNode), (nElem*16)))
 
         for i in range(nElem):
             for j in range(4):
@@ -64,4 +67,8 @@ class ModeshapeGlobStiff(ExplicitComponent):
                     for p in range(4):
                         col = int(LD[i][p])
                         if col > -1:
-                            partials['K_mode', 'kel'][(nDOF * row + col)][16 * i + 4 * j + p] += 1.
+                            K_mode_all[(nDOF * row + col)][16 * i + 4 * j + p] += 1.
+
+        offset1 = (4*nNode) - 2
+        offset2 = -1*((4*nNode) - 2)
+        partials['K_mode', 'kel'] = K_mode_all[offset1:offset2]

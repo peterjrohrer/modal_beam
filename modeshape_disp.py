@@ -34,9 +34,8 @@ class ModeshapeDisp(ExplicitComponent):
         x_beamnode[1:] = inputs['eig_vector'][0:(nElem + 1) * 2:2]
         rot_beamnode[1:] = inputs['eig_vector'][1:(nElem + 2) * 2:2]
 
-        x_node = np.hstack((x_beamnode[:-1], x_beamnode))
-        max_x_node_idx = np.argmax(np.abs(x_node))
-        max_x_node = x_node[max_x_node_idx]
+        max_x_node_idx = np.argmax(np.abs(x_beamnode))
+        max_x_node = x_beamnode[max_x_node_idx]
 
         outputs['x_beamnode'] = x_beamnode / max_x_node
 
@@ -48,19 +47,22 @@ class ModeshapeDisp(ExplicitComponent):
         nElem = self.options['nElem']
         nDOF = self.options['nDOF']
 
-        x_beamnode = inputs['eig_vector'][0:(nElem + 1) * 2:2]
-        rot_beamnode = inputs['eig_vector'][1:(nElem + 2) * 2:2]
+        x_beamnode = np.zeros(nNode)
+        rot_beamnode = np.zeros(nNode)
 
-        max_x_node = np.max(np.abs(x_beamnode))
+        x_beamnode[1:] = inputs['eig_vector'][0:(nElem + 1) * 2:2]
+        rot_beamnode[1:] = inputs['eig_vector'][1:(nElem + 2) * 2:2]
+
         max_x_node_idx = np.argmax(np.abs(x_beamnode))
+        max_x_node = x_beamnode[max_x_node_idx]
 
         partials['x_beamnode', 'eig_vector'] = np.zeros((nNode, nDOF))
     
-        x_node_partial = np.zeros((nNode,nDOF))
-        for i in range(nElem) :
-            x_node_partial[i, 2 * i] += 1. / max_x_node
+        x_node_partial_all = np.zeros((nNode,nNode*2))
 
-        partials['x_beamnode', 'eig_vector'] = x_node_partial[0:nNode,...]
-        # Adjust partials for normalization
-        for i in range(nElem) :
-            partials['x_beamnode', 'eig_vector'][i, 2*max_x_node_idx] += -1 * x_beamnode[i] / (max_x_node**2)
+        for i in range(nNode) :
+            x_node_partial_all[i, 2 * i] += 1. / max_x_node
+            # Adjust partials for normalization
+            x_node_partial_all[i, 2*max_x_node_idx] += -1 * x_beamnode[i] / (max_x_node**2)
+
+        partials['x_beamnode', 'eig_vector'] = x_node_partial_all[:,2:]
