@@ -1,5 +1,7 @@
 import numpy as np
+import jax.numpy as jnp
 import openmdao.api as om
+import openmdao.func_api as omf
 
 from modeshape_beam_nodes import ModeshapeBeamNodes
 from modeshape_elem_length import ModeshapeElemLength
@@ -72,10 +74,11 @@ class Modeshape(om.Group):
             promotes_inputs=['kel'], 
             promotes_outputs=['K_mode'])
 
-        self.add_subsystem('modeshape_eig_full',
-            ModeshapeEigen(nNode=nNode,nElem=nElem,nDOF=nDOF),
-            promotes_inputs=['M_mode', 'K_mode'],
-            promotes_outputs=['full_eig_vector', 'full_eig_val'])
+        # self.add_subsystem('modeshape_eig_full',
+        #     ModeshapeEigen(nNode=nNode,nElem=nElem,nDOF=nDOF),
+        #     promotes_inputs=['M_mode', 'K_mode'],
+        #     promotes_outputs=['full_eig_vector', 'full_eig_val'])
+
 
         self.add_subsystem('modeshape_M_inv', 
             ModeshapeMInv(nNode=nNode,nElem=nElem,nDOF=nDOF), 
@@ -86,6 +89,23 @@ class Modeshape(om.Group):
             ModeshapeEigmatrix(nNode=nNode,nElem=nElem,nDOF=nDOF), 
             promotes_inputs=['K_mode', 'M_mode_inv'], 
             promotes_outputs=['A_eig'])
+
+        ## Experiment with ExplicitFuncComp and wrapping for eigen problem
+        f = omf.wrap(np.linalg.eig)
+        f.defaults(method='fd')
+        f.add_input('a', shape=(nDOF,nDOF))
+        f.add_output('w', shape=(nDOF))
+        f.add_output('v', shape=(nDOF,nDOF))
+        f.declare_partials(of='w', wrt='a')
+        f.declare_partials(of='v', wrt='a')
+
+        self.add_subsystem('comp', om.ExplicitFuncComp(f))
+        self.connect('A_eig','comp.a')
+        # self.connect('comp.w','full_eig_val')
+        # self.connect('comp.v','full_eig_vec')
+        
+        ## Maybe try balance component too?
+        #https://openmdao.org/newdocs/versions/latest/features/building_blocks/components/balance_comp.html
 
         self.add_subsystem('modeshape_eigvector', 
             ModeshapeEigvector(nNode=nNode,nElem=nElem,nDOF=nDOF), 
