@@ -31,8 +31,11 @@ class EigenBal(om.Group):
             w, v = np.linalg.eig(A)
             outputs['lam'] = np.diag(w)
 
-        lam_init = np.diag(np.arange(1,nDOF+1))
-        phi_init = np.matmul(np.reshape(np.arange(1,nDOF+1),(nDOF,1)), np.reshape(np.arange(1,nDOF+1),(1,nDOF)))
+        # lam_init = np.diag(np.arange(1,nDOF+1))
+        # phi_init = np.matmul(np.reshape(np.arange(1,nDOF+1),(nDOF,1)), np.reshape(np.arange(1,nDOF+1),(1,nDOF)))
+
+        lam_init = np.ones((nDOF,nDOF))
+        phi_init = np.ones((nDOF,nDOF))
 
         self.add_subsystem('modeshape_eig_lhs_2', 
             ModeshapeEigenLHS2(nDOF=nDOF),
