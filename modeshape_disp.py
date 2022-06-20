@@ -17,7 +17,7 @@ class ModeshapeDisp(ExplicitComponent):
         nElem = self.options['nElem']
         nDOF = self.options['nDOF']
 
-        self.add_input('eig_vector', val=np.zeros(nDOF), units='m')
+        self.add_input('eig_vector', val=np.ones(nDOF), units='m')
 
         self.add_output('x_beamnode', val=np.zeros(nNode), units='m/m')
 

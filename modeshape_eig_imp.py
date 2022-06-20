@@ -1,9 +1,9 @@
 import numpy as np
-import scipy.linalg
+import scipy
 import openmdao.api as om
 
 
-class ModeshapeEigen(om.ImplicitComponent):
+class ModeshapeEigenImp(om.ImplicitComponent):
     # Full solution to eigenvalue problem
 
     def initialize(self):
@@ -19,59 +19,46 @@ class ModeshapeEigen(om.ImplicitComponent):
         self.add_input('M_mode', val=np.zeros((nDOF, nDOF)), units='kg')
         self.add_input('K_mode', val=np.zeros((nDOF, nDOF)), units='N/m')
 
-        self.add_output('Phi', val=np.zeros((nDOF, nDOF)))
-        self.add_output('Lambda', val=np.zeros(nDOF))
+        self.add_output('eig_vectors', val=np.zeros((nDOF, nDOF)))
+        self.add_output('eig_vals', val=np.ones((nDOF, nDOF)))
+
+        # self.add_input('M_mode', val=np.eye(nDOF), units='kg')
+        # self.add_input('K_mode', val=np.eye(nDOF), units='N/m')
+
+        # self.add_output('eig_vectors', val=np.ones((nDOF, nDOF)))
+        # self.add_output('eig_vals', val=np.diag(np.arange(1,nDOF+1)))
 
     def setup_partials(self):
-        self.declare_partials('*', '*')
+        self.declare_partials('*', '*', method='fd')
 
     def apply_nonlinear(self, inputs, outputs, residuals):
-        K = inputs['K_mode']
-        M = inputs['M_mode']
-        Phi = outputs['Phi']
-        Lambda = outputs['Lambda']
-
-        np.matmul(inputs['M_mode'],outputs)
-
-
-    def compute(self, inputs, outputs):
-        K = inputs['K_mode']
-        M = inputs['M_mode']
-
-        vals, vecs = scipy.linalg.eig(K,M)
-
-        outputs['Phi'] = vecs
-        outputs['Lambda'] = vals
-
-    def compute_partials(self, inputs, partials):
         nDOF = self.options['nDOF']
+        K = inputs['K_mode']
+        M = inputs['M_mode']
+        PHI = outputs['eig_vectors']
+        LAM = outputs['eig_vals']
 
+        residuals['eig_vals'] = np.matmul(M,PHI) - np.matmul(K,np.matmul(PHI,LAM))
+        residuals['eig_vectors'] = np.matmul(PHI.T,np.matmul(M,PHI)) - np.identity(nDOF)
+
+    def solve_nonlinear(self, inputs, outputs):
+        nDOF = self.options['nDOF']
         K = inputs['K_mode']
         M = inputs['M_mode']
 
-        partials['Phi','K_mode'] = np.zeros((nDOF*nDOF, nDOF*nDOF))
-        partials['Phi','M_mode'] = np.zeros((nDOF*nDOF, nDOF*nDOF))
-        partials['Lambda','K_mode'] = np.zeros((nDOF, nDOF*nDOF))
-        partials['Lambda','M_mode'] = np.zeros((nDOF, nDOF*nDOF))
+        w,v = scipy.linalg.eig(K,M)
 
-        vals, vecs = scipy.linalg.eig(K,M)
+        outputs['eig_vals'] = np.diag(w)
+        outputs['eig_vectors'] = v
 
-        ## Values
-        for i in range(nDOF):
-            partials['Lambda','K_mode'][i,:] += np.ones(nDOF*nDOF)
-            partials['Lambda','M_mode'][i,:] += ((vecs[:,i].T)@(vals[i]*vecs[:,i]))*np.ones(nDOF*nDOF)
+    # def linearize(self, inputs, outputs, partials):
+    #     nDOF = self.options['nDOF']
+    #     K = inputs['K_mode']
+    #     M = inputs['M_mode']
+    #     PHI = outputs['eig_vectors']
+    #     LAM = outputs['eig_vals']
 
-        ## Vectors
-        F = np.zeros((nDOF,nDOF,nDOF))
-        for i in range(nDOF):
-            F[:,:,i] += K - vals[i]*M
-
-        # F = np.zeros((nDOF, nDOF))
-        # ## What should diagonal values be??
-        # for i in range(nDOF):
-        #     for j in range(nDOF):
-        #         F[i,j] = vals[i]/(vals[j]-vals[i])
-        #         if i == j:
-        #             F[i,j] = 0.
-
-        print('help!')
+    #     partials['eig_vals','M_mode'] = 0.
+    #     partials['eig_vals','K_mode'] = 0.
+    #     partials['eig_vals','eig_vectors'] = 0.
+    #     partials['eig_vals','eig_vals'] = -1. * np.matmul(K,PHI)

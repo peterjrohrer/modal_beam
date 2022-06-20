@@ -27,7 +27,7 @@ class Cantilever(om.Group):
 
         modeshape_group = Modeshape(nNode=nNode, nElem=nElem, nDOF=nDOF)
         # modeshape_group.linear_solver = ScipyKrylov()
-        modeshape_group.linear_solver = om.DirectSolver(assemble_jac=True)
+        # modeshape_group.linear_solver = om.DirectSolver(assemble_jac=True)
         # modeshape_group.linear_solver.precon = DirectSolver(assemble_jac=True)
         # modeshape_group.nonlinear_solver = om.NonlinearBlockGS(maxiter=500, iprint=0)
         # modeshape_group.nonlinear_solver = om.NewtonSolver(solve_subsystems=False, maxiter=100, iprint=0)

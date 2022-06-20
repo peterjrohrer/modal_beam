@@ -14,9 +14,9 @@ from modeshape_glob_stiff import ModeshapeGlobStiff
 from modeshape_M_inv import ModeshapeMInv
 from modeshape_eigmatrix import ModeshapeEigmatrix
 from modeshape_eigvector import ModeshapeEigvector
-from modeshape_eig_full import ModeshapeEigen
-
-from eig_bal_group import EigenBal
+# from modeshape_eig_full import ModeshapeEigen
+# from eig_bal_group import EigenBal
+from eig_imp_group import EigenImp
 
 from eigen_to_mode_group import Eig2Mode
 
@@ -75,20 +75,20 @@ class Modeshape(om.Group):
             promotes_inputs=['kel'], 
             promotes_outputs=['K_mode'])
 
-        self.add_subsystem('modeshape_M_inv', 
-            ModeshapeMInv(nNode=nNode,nElem=nElem,nDOF=nDOF), 
-            promotes_inputs=['M_mode'], 
-            promotes_outputs=['M_mode_inv'])
+        # self.add_subsystem('modeshape_M_inv', 
+        #     ModeshapeMInv(nNode=nNode,nElem=nElem,nDOF=nDOF), 
+        #     promotes_inputs=['M_mode'], 
+        #     promotes_outputs=['M_mode_inv'])
 
-        self.add_subsystem('modeshape_eigmatrix', 
-            ModeshapeEigmatrix(nNode=nNode,nElem=nElem,nDOF=nDOF), 
-            promotes_inputs=['K_mode', 'M_mode_inv'], 
-            promotes_outputs=['A_eig'])
+        # self.add_subsystem('modeshape_eigmatrix', 
+        #     ModeshapeEigmatrix(nNode=nNode,nElem=nElem,nDOF=nDOF), 
+        #     promotes_inputs=['K_mode', 'M_mode_inv'], 
+        #     promotes_outputs=['A_eig'])
 
-        self.add_subsystem('modeshape_eigvector', 
-            ModeshapeEigvector(nNode=nNode,nElem=nElem,nDOF=nDOF), 
-            promotes_inputs=['A_eig'], 
-            promotes_outputs=['eig_vector_1', 'eig_freq_1', 'eig_vector_2', 'eig_freq_2', 'eig_vector_3', 'eig_freq_3'])
+        # self.add_subsystem('modeshape_eigvector', 
+        #     ModeshapeEigvector(nNode=nNode,nElem=nElem,nDOF=nDOF), 
+        #     promotes_inputs=['A_eig'], 
+        #     promotes_outputs=['eig_vector_1', 'eig_freq_1', 'eig_vector_2', 'eig_freq_2', 'eig_vector_3', 'eig_freq_3'])
 
         # ## --- Trying new eigenproblem 
         # self.add_subsystem('modeshape_eig_full',
@@ -125,6 +125,13 @@ class Modeshape(om.Group):
         # # nlbgs.options['rtol'] = 1e-12        
         # eigen_bal_group.nonlinear_solver = om.NewtonSolver(solve_subsystems=False, maxiter=100, iprint=0)
         
+        ## --- Attempting implicit eigenproblem definition
+        eigen_imp_group = EigenImp(nNode=nNode,nElem=nElem,nDOF=nDOF)
+        self.add_subsystem('modeshape_eig_imp', 
+            eigen_imp_group,
+            promotes_inputs=['M_mode', 'K_mode'], 
+            promotes_outputs=['eig_vector_1', 'eig_freq_1', 'eig_vector_2', 'eig_freq_2', 'eig_vector_3', 'eig_freq_3'])
+
         numModes = 3
         for i in range(1,numModes+1):
             self.add_subsystem('modeshape_%d' % i,
