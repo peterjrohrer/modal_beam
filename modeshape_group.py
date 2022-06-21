@@ -17,6 +17,7 @@ from modeshape_eigvector import ModeshapeEigvector
 # from modeshape_eig_full import ModeshapeEigen
 # from eig_bal_group import EigenBal
 from eig_imp_group import EigenImp
+from modeshape_eig_select import ModeshapeEigSelect
 
 from eigen_to_mode_group import Eig2Mode
 
@@ -130,6 +131,16 @@ class Modeshape(om.Group):
         self.add_subsystem('modeshape_eig_imp', 
             eigen_imp_group,
             promotes_inputs=['M_mode', 'K_mode'], 
+            promotes_outputs=['eig_vectors', 'eig_vals'])
+        
+        # eigen_imp_group.nonlinear_solver = om.NewtonSolver(solve_subsystems=False)
+        # eigen_imp_group.linear_solver = om.DirectSolver()
+        eigen_imp_group.linear_solver = om.ScipyKrylov()
+        eigen_imp_group.linear_solver.precon = om.DirectSolver(assemble_jac=True)
+
+        self.add_subsystem('modeshape_eig_select', 
+            ModeshapeEigSelect(nNode=nNode,nElem=nElem,nDOF=nDOF),
+            promotes_inputs=['eig_vectors', 'eig_vals'], 
             promotes_outputs=['eig_vector_1', 'eig_freq_1', 'eig_vector_2', 'eig_freq_2', 'eig_vector_3', 'eig_freq_3'])
 
         numModes = 3

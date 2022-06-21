@@ -50,8 +50,9 @@ class Eig2Mode(om.Group):
 
         beam_node_1_deriv = BeamNode1Deriv(nNode=nNode,nElem=nElem,nDOF=nDOF)
         beam_node_1_deriv.linear_solver = om.ScipyKrylov()
-        # beam_node_1_deriv.linear_solver.precon = om.DirectSolver(assemble_jac=True)
-        #beam_node_1_deriv.linear_solver = om.DirectSolver(assemble_jac=True)
+        beam_node_1_deriv.linear_solver.precon = om.DirectSolver(assemble_jac=True)
+        # beam_node_1_deriv.linear_solver = om.DirectSolver(assemble_jac=True)
+        # beam_node_1_deriv.nonlinear_solver = om.NewtonSolver(solve_subsystems=False)
 
         self.add_subsystem('beam_node_1_deriv', 
             beam_node_1_deriv, 
