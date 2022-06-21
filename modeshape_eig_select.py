@@ -37,9 +37,9 @@ class ModeshapeEigSelect(ExplicitComponent):
         eig_vecs = inputs['eig_vectors']
         eig_vals = np.diag(inputs['eig_vals'])
 
-        outputs['eig_freq_1'] = np.sqrt(np.real(eig_vals[0])) / (2*np.pi) # Export in Hz
-        outputs['eig_vector_1'] = eig_vecs[:, 0]
-        outputs['eig_freq_2'] = np.sqrt(np.real(eig_vals[1])) / (2*np.pi) # Export in Hz
-        outputs['eig_vector_2'] = eig_vecs[:, 1]
-        outputs['eig_freq_3'] = np.sqrt(np.real(eig_vals[2])) / (2*np.pi) # Export in Hz
-        outputs['eig_vector_3'] = eig_vecs[:, 2]
+        outputs['eig_freq_1'] = np.sqrt(eig_vals[-1]) / (2*np.pi) # Export in Hz
+        outputs['eig_vector_1'] = eig_vecs[:, -1]
+        outputs['eig_freq_2'] = np.sqrt(eig_vals[-2]) / (2*np.pi) # Export in Hz
+        outputs['eig_vector_2'] = eig_vecs[:, -2]
+        outputs['eig_freq_3'] = np.sqrt(eig_vals[-3]) / (2*np.pi) # Export in Hz
+        outputs['eig_vector_3'] = eig_vecs[:, -3]

@@ -30,7 +30,7 @@ prob.model.add_subsystem('cantilever',
 # prob.model.set_input_defaults('water_depth', val=10., units='m')
 
 # Setup and run problem
-prob.setup()
+prob.setup(force_alloc_complex=True)
 prob.set_solver_print(1)
 prob.run_model()
 
@@ -38,17 +38,17 @@ print('Mode 1 Nat. Period: %3.2f s, (freq: %3.3f rad/s, %3.3f Hz)' % (1./float(p
 print('Mode 2 Nat. Period: %3.2f s, (freq: %3.3f rad/s, %3.3f Hz)' % (1./float(prob['eig_freq_2']), (2*np.pi*float(prob['eig_freq_2'])), (float(prob['eig_freq_2']))))
 print('Mode 3 Nat. Period: %3.2f s, (freq: %3.3f rad/s, %3.3f Hz)' % (1./float(prob['eig_freq_3']), (2*np.pi*float(prob['eig_freq_3'])), (float(prob['eig_freq_3']))))
 
-# ## --- Check Eigenvals
-# M_glob = prob['M_global'] 
-# K_glob = prob['K_global']
+## --- Check Eigenvals
+M_glob = prob['M_global'] 
+K_glob = prob['K_global']
 
-# M_glob_inv = np.linalg.inv(M_glob)
-# eig_mat = np.matmul(M_glob_inv, K_glob)
-# eig_vals_raw, eig_vecs = np.linalg.eig(eig_mat)
-# eig_vals = np.sqrt(np.real(np.sort(eig_vals_raw))) 
-# eig_vecs_xloc = np.linspace(0,1,3)
+M_glob_inv = np.linalg.inv(M_glob)
+eig_mat = np.matmul(M_glob_inv, K_glob)
+eig_vals_raw, eig_vecs = np.linalg.eig(eig_mat)
+eig_vals = np.sqrt(np.real(np.sort(eig_vals_raw))) 
+eig_vecs_xloc = np.linspace(0,1,3)
 
-# print('Eigenfrequencies: %3.3f rad/s, %3.3f rad/s, %3.3f rad/s' % (eig_vals[0], eig_vals[1], eig_vals[2]))
+print('Eigenfrequencies: %3.3f rad/s, %3.3f rad/s, %3.3f rad/s' % (eig_vals[0], eig_vals[1], eig_vals[2]))
 
 ## --- Pull out Modeshape
 x_beamnode_1 = prob['x_beamnode_1']

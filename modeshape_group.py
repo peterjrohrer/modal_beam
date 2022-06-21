@@ -11,12 +11,12 @@ from modeshape_elem_stiff import ModeshapeElemStiff
 from modeshape_glob_mass import ModeshapeGlobMass
 from modeshape_glob_stiff import ModeshapeGlobStiff
 
-from modeshape_M_inv import ModeshapeMInv
-from modeshape_eigmatrix import ModeshapeEigmatrix
-from modeshape_eigvector import ModeshapeEigvector
-# from modeshape_eig_full import ModeshapeEigen
+# from modeshape_M_inv import ModeshapeMInv
+# from modeshape_eigmatrix import ModeshapeEigmatrix
+# from modeshape_eigvector import ModeshapeEigvector
+from modeshape_eig_full import ModeshapeEigen
 # from eig_bal_group import EigenBal
-from eig_imp_group import EigenImp
+# from eig_imp_group import EigenImp
 from modeshape_eig_select import ModeshapeEigSelect
 
 from eigen_to_mode_group import Eig2Mode
@@ -91,11 +91,11 @@ class Modeshape(om.Group):
         #     promotes_inputs=['A_eig'], 
         #     promotes_outputs=['eig_vector_1', 'eig_freq_1', 'eig_vector_2', 'eig_freq_2', 'eig_vector_3', 'eig_freq_3'])
 
-        # ## --- Trying new eigenproblem 
-        # self.add_subsystem('modeshape_eig_full',
-        #     ModeshapeEigen(nNode=nNode,nElem=nElem,nDOF=nDOF),
-        #     promotes_inputs=['M_mode', 'K_mode'],
-        #     promotes_outputs=['full_eig_vector', 'full_eig_val'])
+        ## --- Trying new eigenproblem 
+        self.add_subsystem('modeshape_eig_full',
+            ModeshapeEigen(nNode=nNode,nElem=nElem,nDOF=nDOF),
+            promotes_inputs=['M_mode', 'K_mode'],
+            promotes_outputs=['eig_vectors', 'eig_vals'])
 
         # ## --- Experiment with ExplicitFuncComp and wrapping for eigen problem
         # f = omf.wrap(np.linalg.eig)
@@ -126,17 +126,17 @@ class Modeshape(om.Group):
         # # nlbgs.options['rtol'] = 1e-12        
         # eigen_bal_group.nonlinear_solver = om.NewtonSolver(solve_subsystems=False, maxiter=100, iprint=0)
         
-        ## --- Attempting implicit eigenproblem definition
-        eigen_imp_group = EigenImp(nNode=nNode,nElem=nElem,nDOF=nDOF)
-        self.add_subsystem('modeshape_eig_imp', 
-            eigen_imp_group,
-            promotes_inputs=['M_mode', 'K_mode'], 
-            promotes_outputs=['eig_vectors', 'eig_vals'])
+        # ## --- Attempting implicit eigenproblem definition
+        # eigen_imp_group = EigenImp(nNode=nNode,nElem=nElem,nDOF=nDOF)
+        # self.add_subsystem('modeshape_eig_imp', 
+        #     eigen_imp_group,
+        #     promotes_inputs=['M_mode', 'K_mode'], 
+        #     promotes_outputs=['eig_vectors', 'eig_vals'])
         
-        # eigen_imp_group.nonlinear_solver = om.NewtonSolver(solve_subsystems=False)
-        # eigen_imp_group.linear_solver = om.DirectSolver()
-        eigen_imp_group.linear_solver = om.ScipyKrylov()
-        eigen_imp_group.linear_solver.precon = om.DirectSolver(assemble_jac=True)
+        # # eigen_imp_group.nonlinear_solver = om.NewtonSolver(solve_subsystems=False)
+        # # eigen_imp_group.linear_solver = om.DirectSolver()
+        # eigen_imp_group.linear_solver = om.ScipyKrylov()
+        # eigen_imp_group.linear_solver.precon = om.DirectSolver(assemble_jac=True)
 
         self.add_subsystem('modeshape_eig_select', 
             ModeshapeEigSelect(nNode=nNode,nElem=nElem,nDOF=nDOF),

@@ -1,9 +1,8 @@
 import numpy as np
 import scipy.linalg
-from openmdao.api import ExplicitComponent
+import openmdao.api as om
 
-
-class ModeshapeEigen(ExplicitComponent):
+class ModeshapeEigen(om.ExplicitComponent):
     # Full solution to eigenvalue problem
 
     def initialize(self):
@@ -19,8 +18,8 @@ class ModeshapeEigen(ExplicitComponent):
         self.add_input('M_mode', val=np.zeros((nDOF, nDOF)), units='kg')
         self.add_input('K_mode', val=np.zeros((nDOF, nDOF)), units='N/m')
 
-        self.add_output('full_eig_vector', val=np.zeros((nDOF, nDOF)))
-        self.add_output('full_eig_val', val=np.zeros(nDOF))
+        self.add_output('eig_vectors', val=np.zeros((nDOF, nDOF)))
+        self.add_output('eig_vals', val=np.zeros((nDOF, nDOF)))
 
         self.declare_partials('*', '*')
 
@@ -30,8 +29,13 @@ class ModeshapeEigen(ExplicitComponent):
 
         vals, vecs = scipy.linalg.eig(K,M)
 
-        outputs['full_eig_vector'] = vecs
-        outputs['full_eig_val'] = vals
+        if any(np.imag(vals) != 0.) :
+            raise om.AnalysisError('Imaginary eigenvalues')
+        if any(np.real(vals) < 0.) :
+            raise om.AnalysisError('Negative eigenvalues')
+
+        outputs['eig_vectors'] = vecs
+        outputs['eig_vals'] = np.diag(np.real(vals))
 
     def compute_partials(self, inputs, partials):
         nDOF = self.options['nDOF']
@@ -39,17 +43,17 @@ class ModeshapeEigen(ExplicitComponent):
         K = inputs['K_mode']
         M = inputs['M_mode']
 
-        partials['full_eig_vector','K_mode'] = np.zeros((nDOF*nDOF, nDOF*nDOF))
-        partials['full_eig_vector','M_mode'] = np.zeros((nDOF*nDOF, nDOF*nDOF))
-        partials['full_eig_val','K_mode'] = np.zeros((nDOF, nDOF*nDOF))
-        partials['full_eig_val','M_mode'] = np.zeros((nDOF, nDOF*nDOF))
+        partials['eig_vectors','K_mode'] = np.zeros((nDOF*nDOF, nDOF*nDOF))
+        partials['eig_vectors','M_mode'] = np.zeros((nDOF*nDOF, nDOF*nDOF))
+        partials['eig_vals','K_mode'] = np.zeros((nDOF*nDOF, nDOF*nDOF))
+        partials['eig_vals','M_mode'] = np.zeros((nDOF*nDOF, nDOF*nDOF))
 
         vals, vecs = scipy.linalg.eig(K,M)
 
         ## Values
         for i in range(nDOF):
-            partials['full_eig_val','K_mode'][i,:] += np.ones(nDOF*nDOF)
-            partials['full_eig_val','M_mode'][i,:] += ((vecs[:,i].T)@(vals[i]*vecs[:,i]))*np.ones(nDOF*nDOF)
+            partials['eig_vals','K_mode'][i,:] += np.ones(nDOF*nDOF)
+            partials['eig_vals','M_mode'][i,:] += ((vecs[:,i].T)@(vals[i]*vecs[:,i]))*np.ones(nDOF*nDOF)
 
         ## Vectors
         F = np.zeros((nDOF,nDOF,nDOF))
