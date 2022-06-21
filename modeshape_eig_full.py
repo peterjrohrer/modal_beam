@@ -102,16 +102,16 @@ class ModeshapeEigen(om.ExplicitComponent):
         
         # vecs = self.vecs
         # vals = self.vals
+        
+        F = np.zeros((nDOF, nDOF))
+        for i in range(nDOF):
+            for j in range(nDOF):
+                if i == j:
+                    F[i,j] = 0.
+                else:
+                    F[i,j] = vals[i,i]/(vals[j,j]-vals[i,i])
 
-        if mode == 'rev':
-            F = np.zeros((nDOF, nDOF))
-            for i in range(nDOF):
-                for j in range(nDOF):
-                    if i == j:
-                        F[i,j] = 0.
-                    else:
-                        F[i,j] = vals[i,i]/(vals[j,j]-vals[i,i])
-            
+        if mode == 'rev':    
             if 'eig_vectors' in d_outputs:
                 if 'M_mode' in d_inputs:
                     d_inputs['M_mode'] += vecs @ ((vals.T @ d_outputs['eig_vals']) + np.multiply(F,(vecs.T @ d_outputs['eig_vectors'])) - np.multiply((0.5*np.eye(nDOF)), (vecs.T @ d_outputs['eig_vectors']))) @ vecs.T
@@ -127,4 +127,16 @@ class ModeshapeEigen(om.ExplicitComponent):
             # d_inputs['K_mode'] = -1. * vecs @ ((vals.T @ d_outputs['eig_vals']) + np.multiply(F,(vecs.T @ d_outputs['eig_vectors']))) @ vals @ vecs.T
 
         elif mode == 'fwd':
-            raise Exception('Forward mode partial derivatives not defined!')
+            if 'eig_vectors' in d_outputs:
+                if 'M_mode' in d_inputs:
+                    d_outputs['eig_vectors'] += (vals @ np.multiply(F, ((-1. * vecs.T @ d_inputs['K_mode'] @ vecs @ vals) + (vecs.T @ d_inputs['M_mode'] @ vecs)))) - (0.5 * vecs @ np.multiply(np.eye(nDOF), (vecs.T @ d_inputs['M_mode'] @ vecs)))
+                if 'K_mode' in d_inputs:
+                    d_outputs['eig_vectors'] += (vals @ np.multiply(F, ((-1. * vecs.T @ d_inputs['K_mode'] @ vecs @ vals) + (vecs.T @ d_inputs['M_mode'] @ vecs)))) - (0.5 * vecs @ np.multiply(np.eye(nDOF), (vecs.T @ d_inputs['M_mode'] @ vecs)))
+            if 'eig_vals' in d_outputs:
+                if 'M_mode' in d_inputs:
+                    d_outputs['eig_vals'] += vals @ np.multiply(np.eye(nDOF), ((-1. * vecs.T @ d_inputs['K_mode'] @ vecs @ vals) + (vecs.T @ d_inputs['M_mode'] @ vecs)))
+                if 'K_mode' in d_inputs:
+                    d_outputs['eig_vals'] += vals @ np.multiply(np.eye(nDOF), ((-1. * vecs.T @ d_inputs['K_mode'] @ vecs @ vals) + (vecs.T @ d_inputs['M_mode'] @ vecs)))
+
+            # d_outputs['eig_vals'] = vals @ np.multiply(np.eye(nDOF), ((-1. * vecs.T @ d_inputs['K_mode'] @ vecs @ vals) + (vecs.T @ d_inputs['M_mode'] @ vecs)))
+            # d_outputs['eig_vectors'] = (vals @ np.multiply(F, ((-1. * vecs.T @ d_inputs['K_mode'] @ vecs @ vals) + (vecs.T @ d_inputs['M_mode'] @ vecs)))) - (0.5 * vecs @ np.multiply(np.eye(nDOF), (vecs.T @ d_inputs['M_mode'] @ vecs)))

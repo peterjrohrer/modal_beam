@@ -40,7 +40,7 @@ prob.model.add_constraint('eig_freq_1', lower=0.035, ref0=0.025, ref=0.045)
 prob.model.add_objective('tot_M_beam', ref0=5000., ref=10000.)
 
 # Setup and run problem
-prob.setup(mode='rev', force_alloc_complex=True)
+prob.setup(mode='auto', force_alloc_complex=True)
 prob.run_driver()
 
 # # Setup and check partials
