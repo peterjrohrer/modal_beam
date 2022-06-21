@@ -22,11 +22,11 @@ class Cantilever(om.Group):
 
         self.add_subsystem('beam_group',
             Beam(nNode=nNode,nElem=nElem),
-            promotes_inputs=[],
+            promotes_inputs=['diameter', 'thickness'],
             promotes_outputs=['Z_beam', 'D_beam', 'L_beam', 'M_beam', 'tot_M_beam', 'wt_beam'])
 
         modeshape_group = Modeshape(nNode=nNode, nElem=nElem, nDOF=nDOF)
-        # modeshape_group.linear_solver = ScipyKrylov()
+        # modeshape_group.linear_solver = om.ScipyKrylov()
         # modeshape_group.linear_solver = om.DirectSolver(assemble_jac=True)
         # modeshape_group.linear_solver.precon = DirectSolver(assemble_jac=True)
         # modeshape_group.nonlinear_solver = om.NonlinearBlockGS(maxiter=500, iprint=0)

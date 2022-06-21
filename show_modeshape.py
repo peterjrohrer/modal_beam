@@ -21,17 +21,18 @@ cantilever_group = Cantilever(nNode=(elements+1), nElem=elements, nDOF=(2*elemen
 
 prob.model.add_subsystem('cantilever', 
     cantilever_group, 
-    promotes_inputs=[],
+    promotes_inputs=['diameter', 'thickness'],
     promotes_outputs=['M_global', 'K_global', 'Z_beam', 'D_beam', 'L_beam', 'M_beam', 'tot_M_beam', 'wt_beam',
         'eig_vector_*', 'eig_freq_*', 'z_beamnode', 'z_beamelem',
         'x_beamnode_*', 'x_d_beamnode_*', 'x_beamelem_*', 'x_d_beamelem_*', 'x_dd_beamelem_*',])
 
-#  Set inputs
-# prob.model.set_input_defaults('water_depth', val=10., units='m')
+# Set inputs
+prob.model.set_input_defaults('diameter', val=0.25, units='m')
+prob.model.set_input_defaults('thickness', val=0.05, units='m')
 
 # Setup and run problem
-prob.setup(force_alloc_complex=True)
-prob.set_solver_print(1)
+prob.setup(mode='rev', derivatives=True)
+prob.set_solver_print(level=1)
 prob.run_model()
 
 print('Mode 1 Nat. Period: %3.2f s, (freq: %3.3f rad/s, %3.3f Hz)' % (1./float(prob['eig_freq_1']), (2*np.pi*float(prob['eig_freq_1'])), (float(prob['eig_freq_1']))))
