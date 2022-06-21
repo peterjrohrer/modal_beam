@@ -1,4 +1,5 @@
 import numpy as np
+import scipy
 import openmdao.api as om
 import openmdao.func_api as omf
 
@@ -11,12 +12,7 @@ from modeshape_elem_stiff import ModeshapeElemStiff
 from modeshape_glob_mass import ModeshapeGlobMass
 from modeshape_glob_stiff import ModeshapeGlobStiff
 
-# from modeshape_M_inv import ModeshapeMInv
-# from modeshape_eigmatrix import ModeshapeEigmatrix
-# from modeshape_eigvector import ModeshapeEigvector
-from modeshape_eig_full import ModeshapeEigen
-# from eig_bal_group import EigenBal
-# from eig_imp_group import EigenImp
+from eigenproblem import Eigenproblem
 from modeshape_eig_select import ModeshapeEigSelect
 
 from eigen_to_mode_group import Eig2Mode
@@ -76,67 +72,35 @@ class Modeshape(om.Group):
             promotes_inputs=['kel'], 
             promotes_outputs=['K_mode'])
 
-        # self.add_subsystem('modeshape_M_inv', 
-        #     ModeshapeMInv(nNode=nNode,nElem=nElem,nDOF=nDOF), 
-        #     promotes_inputs=['M_mode'], 
-        #     promotes_outputs=['M_mode_inv'])
-
-        # self.add_subsystem('modeshape_eigmatrix', 
-        #     ModeshapeEigmatrix(nNode=nNode,nElem=nElem,nDOF=nDOF), 
-        #     promotes_inputs=['K_mode', 'M_mode_inv'], 
-        #     promotes_outputs=['A_eig'])
-
-        # self.add_subsystem('modeshape_eigvector', 
-        #     ModeshapeEigvector(nNode=nNode,nElem=nElem,nDOF=nDOF), 
-        #     promotes_inputs=['A_eig'], 
-        #     promotes_outputs=['eig_vector_1', 'eig_freq_1', 'eig_vector_2', 'eig_freq_2', 'eig_vector_3', 'eig_freq_3'])
-
-        ## --- Trying new eigenproblem 
-        self.add_subsystem('modeshape_eig_full',
-            ModeshapeEigen(nNode=nNode,nElem=nElem,nDOF=nDOF),
+        self.add_subsystem('eigenproblem',
+            Eigenproblem(nDOF=nDOF),
             promotes_inputs=['M_mode', 'K_mode'],
             promotes_outputs=['eig_vectors', 'eig_vals'])
 
-        # ## --- Experiment with ExplicitFuncComp and wrapping for eigen problem
-        # f = omf.wrap(np.linalg.eig)
-        # f.defaults(method='fd')
-        # f.add_input('a', shape=(nDOF,nDOF))
-        # f.add_output('w', shape=(nDOF))
-        # f.add_output('v', shape=(nDOF,nDOF))
-        # f.declare_partials(of='w', wrt='a')
-        # f.declare_partials(of='v', wrt='a')
+        # ## --- Experiment with ExplicitFuncComp and wrapping for eigenproblem
+        # def func(K_mode,M_mode):
+        #     w, v = scipy.linalg.eig(K_mode,M_mode)
 
-        # self.add_subsystem('comp', om.ExplicitFuncComp(f))
-        # self.connect('A_eig','comp.a')
-        # # self.connect('comp.w','full_eig_val')
-        # # self.connect('comp.v','full_eig_vec')
+        #     if any(np.imag(w) != 0.) :
+        #         raise om.AnalysisError('Imaginary eigenvalues')
+        #     if any(np.real(w) < 0.) :
+        #         raise om.AnalysisError('Negative eigenvalues')
+            
+        #     eig_vals = np.diag(np.real(w))
+        #     eig_vectors = v
 
-        # ## --- Attempting with BalanceComponent
-        # eigen_bal_group = EigenBal(nNode=nNode,nElem=nElem,nDOF=nDOF)
-        # self.add_subsystem('modeshape_eig_bal', 
-        #     eigen_bal_group,
-        #     promotes_inputs=['M_mode', 'K_mode'], 
-        #     promotes_outputs=['eig_vector_1', 'eig_freq_1', 'eig_vector_2', 'eig_freq_2', 'eig_vector_3', 'eig_freq_3'])
+        #     return eig_vals, eig_vectors
 
-        # eigen_bal_group.linear_solver = om.DirectSolver(assemble_jac=True)
-        # # eigen_bal_group.linear_solver.precon = DirectSolver(assemble_jac=True)
-        # # nlbgs = eigen_bal_group.nonlinear_solver = om.NonlinearBlockGS()
-        # # nlbgs.options['maxiter'] = 100
-        # # nlbgs.options['iprint'] = 0
-        # # nlbgs.options['rtol'] = 1e-12        
-        # eigen_bal_group.nonlinear_solver = om.NewtonSolver(solve_subsystems=False, maxiter=100, iprint=0)
-        
-        # ## --- Attempting implicit eigenproblem definition
-        # eigen_imp_group = EigenImp(nNode=nNode,nElem=nElem,nDOF=nDOF)
-        # self.add_subsystem('modeshape_eig_imp', 
-        #     eigen_imp_group,
-        #     promotes_inputs=['M_mode', 'K_mode'], 
-        #     promotes_outputs=['eig_vectors', 'eig_vals'])
-        
-        # # eigen_imp_group.nonlinear_solver = om.NewtonSolver(solve_subsystems=False)
-        # # eigen_imp_group.linear_solver = om.DirectSolver()
-        # eigen_imp_group.linear_solver = om.ScipyKrylov()
-        # eigen_imp_group.linear_solver.precon = om.DirectSolver(assemble_jac=True)
+        # f = omf.wrap(func)
+        # f.defaults(method='jax')
+        # f.add_inputs(K_mode={'shape': (nDOF,nDOF), 'units': 'N/m'}, M_mode={'shape': (nDOF,nDOF), 'units': 'kg'})
+        # f.add_outputs(eig_vals={'shape': (nDOF,nDOF)}, eig_vectors={'shape': (nDOF,nDOF)})
+        # f.declare_partials(of=['eig_vals', 'eig_vectors'], wrt=['K_mode', 'M_mode'])
+
+        # self.add_subsystem('eigenproblem',
+        #     om.ExplicitFuncComp(f),
+        #     promotes_inputs=['K_mode', 'M_mode'],
+        #     promotes_outputs=['eig_vals', 'eig_vectors'])
 
         self.add_subsystem('modeshape_eig_select', 
             ModeshapeEigSelect(nNode=nNode,nElem=nElem,nDOF=nDOF),

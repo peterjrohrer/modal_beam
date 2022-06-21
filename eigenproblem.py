@@ -2,17 +2,13 @@ import numpy as np
 import scipy.linalg
 import openmdao.api as om
 
-class ModeshapeEigen(om.ExplicitComponent):
+class Eigenproblem(om.ExplicitComponent):
     # Full solution to eigenvalue problem
 
     def initialize(self):
-        self.options.declare('nNode', types=int)
-        self.options.declare('nElem', types=int)
         self.options.declare('nDOF', types=int)
 
     def setup(self):
-        nNode = self.options['nNode']
-        nElem = self.options['nElem']
         nDOF = self.options['nDOF']
 
         self.add_input('M_mode', val=np.zeros((nDOF, nDOF)), units='kg')
@@ -41,7 +37,7 @@ class ModeshapeEigen(om.ExplicitComponent):
         self.vals = np.diag(np.real(vals))
     
     def compute_jacvec_product(self, inputs, d_inputs, d_outputs, mode):
-        nDOF = self.options['nDOF']
+        nDOF = self.options['nDOF']        
         vecs = self.vecs
         vals = self.vals
         
