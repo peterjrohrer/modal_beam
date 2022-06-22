@@ -20,10 +20,10 @@ class Cantilever(om.Group):
         nElem = self.options['nElem']
         nDOF = self.options['nDOF']        
 
-        self.add_subsystem('beam_group',
+        self.add_subsystem('beam',
             Beam(nNode=nNode,nElem=nElem),
-            promotes_inputs=['diameter', 'thickness'],
-            promotes_outputs=['Z_beam', 'D_beam', 'L_beam', 'M_beam', 'tot_M_beam', 'wt_beam'])
+            promotes_inputs=['D_beam', 'wt_beam'],
+            promotes_outputs=['Z_beam', 'L_beam', 'M_beam', 'tot_M_beam'])
 
         modeshape_group = Modeshape(nNode=nNode, nElem=nElem, nDOF=nDOF)
         # modeshape_group.linear_solver = om.ScipyKrylov()

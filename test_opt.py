@@ -20,8 +20,8 @@ cantilever_group = Cantilever(nNode=(elements+1), nElem=elements, nDOF=(2*elemen
 
 prob.model.add_subsystem('cantilever', 
     cantilever_group, 
-    promotes_inputs=['diameter', 'thickness'],
-    promotes_outputs=['M_global', 'K_global', 'Z_beam', 'D_beam', 'L_beam', 'M_beam', 'tot_M_beam', 'wt_beam',
+    promotes_inputs=['D_beam', 'wt_beam'],
+    promotes_outputs=['M_global', 'K_global', 'Z_beam', 'L_beam', 'M_beam', 'tot_M_beam',
         'eig_vector_*', 'eig_freq_*', 'z_beamnode', 'z_beamelem',
         'x_beamnode_*', 'x_d_beamnode_*', 'x_beamelem_*', 'x_d_beamelem_*', 'x_dd_beamelem_*',])
 
@@ -36,11 +36,11 @@ recorder = om.SqliteRecorder('cases.sql')
 prob.add_recorder(recorder)
 
 # Set variables/defaults/objective/constraints
-prob.model.set_input_defaults('diameter', val=0.75, units='m')
-prob.model.set_input_defaults('thickness', val=0.15, units='m')
+prob.model.set_input_defaults('D_beam', val=0.75*np.ones(elements), units='m')
+prob.model.set_input_defaults('wt_beam', val=0.15*np.ones(elements), units='m')
 
-prob.model.add_design_var('diameter', lower=0.4, upper=3.0)
-prob.model.add_design_var('thickness', lower=0.1, upper=0.25, ref0=0.09, ref=0.26)
+prob.model.add_design_var('D_beam', lower=0.4*np.ones(elements), upper=3.0*np.ones(elements))
+prob.model.add_design_var('wt_beam', lower=0.1*np.ones(elements), upper=0.25*np.ones(elements), ref0=0.09, ref=0.26)
 prob.model.add_constraint('eig_freq_1', lower=0.1, ref0=0.09, ref=0.5)
 prob.model.add_objective('tot_M_beam', ref0=50000., ref=100000.)
 
