@@ -12,6 +12,10 @@ from modeshape_elem_stiff import ModeshapeElemStiff
 from modeshape_glob_mass import ModeshapeGlobMass
 from modeshape_glob_stiff import ModeshapeGlobStiff
 
+from modeshape_M_inv import ModeshapeMInv
+from modeshape_eigmatrix import ModeshapeEigmatrix
+from eigenproblem_nelson import EigenproblemNelson
+
 from eigenproblem import Eigenproblem
 from modeshape_eig_select import ModeshapeEigSelect
 
@@ -71,6 +75,21 @@ class Modeshape(om.Group):
             ModeshapeGlobStiff(nNode=nNode,nElem=nElem,nDOF=nDOF), 
             promotes_inputs=['kel'], 
             promotes_outputs=['K_mode'])
+
+        self.add_subsystem('modeshape_M_inv', 
+            ModeshapeMInv(nNode=nNode,nElem=nElem,nDOF=nDOF), 
+            promotes_inputs=['M_mode'], 
+            promotes_outputs=['M_mode_inv'])
+
+        # self.add_subsystem('modeshape_eigmatrix', 
+        #     ModeshapeEigmatrix(nNode=nNode,nElem=nElem,nDOF=nDOF), 
+        #     promotes_inputs=['K_mode', 'M_mode_inv'], 
+        #     promotes_outputs=['A_eig'])
+
+        # self.add_subsystem('eigenproblem',
+        #     EigenproblemNelson(nDOF=nDOF),
+        #     promotes_inputs=['A_eig'],
+        #     promotes_outputs=['eig_vectors', 'eig_vals'])
 
         self.add_subsystem('eigenproblem',
             Eigenproblem(nDOF=nDOF),

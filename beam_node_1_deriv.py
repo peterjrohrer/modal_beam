@@ -35,6 +35,8 @@ class BeamNode1Deriv(ImplicitComponent):
         outputs['x_d_beamnode'] = linalg.solve(A, b)
 
     def linearize(self, inputs, outputs, partials):
-        partials['x_d_beamnode', 'beam_spline_lhs'] = np.kron(np.identity(11), np.transpose(outputs['x_d_beamnode']))
-        partials['x_d_beamnode', 'beam_spline_rhs'] = -1. * np.identity(11)
+        nNode = self.options['nNode']
+
+        partials['x_d_beamnode', 'beam_spline_lhs'] = np.kron(np.identity(nNode), np.transpose(outputs['x_d_beamnode']))
+        partials['x_d_beamnode', 'beam_spline_rhs'] = -1. * np.identity(nNode)
         partials['x_d_beamnode', 'x_d_beamnode'] = inputs['beam_spline_lhs']
