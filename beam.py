@@ -1,9 +1,9 @@
 import numpy as np
 import myconstants as myconst
-from openmdao.api import ExplicitComponent
+import openmdao.api as om
 
 
-class Beam(ExplicitComponent):
+class Beam(om.ExplicitComponent):
 
     def initialize(self):
         self.options.declare('nNode', types=int)
@@ -35,6 +35,8 @@ class Beam(ExplicitComponent):
         
         D = inputs['diameter']
         wt = inputs['thickness']
+        if D <= (2.*wt):
+            raise om.AnalysisError('Wall thickness too large!')
 
         L_overall = 75.
         L_per_elem = L_overall/nElem 

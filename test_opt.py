@@ -25,29 +25,52 @@ prob.model.add_subsystem('cantilever',
         'eig_vector_*', 'eig_freq_*', 'z_beamnode', 'z_beamelem',
         'x_beamnode_*', 'x_d_beamnode_*', 'x_beamelem_*', 'x_d_beamelem_*', 'x_dd_beamelem_*',])
 
-# Set driver
+# Set driver/recorder
 prob.driver = om.pyOptSparseDriver()
-prob.driver.options['optimizer'] = 'SLSQP'
-# prob.driver.options['debug_print'] = ['desvars','objs']
+prob.driver.options['optimizer'] = 'IPOPT'
+prob.driver.options['debug_print'] = ['desvars','objs','nl_cons']
+
+# Create a recorder variable
+recorder = om.SqliteRecorder('cases.sql')
+# Attach a recorder to the problem
+prob.add_recorder(recorder)
 
 # Set variables/defaults/objective/constraints
-prob.model.set_input_defaults('diameter', val=0.15, units='m')
-prob.model.set_input_defaults('thickness', val=0.05, units='m')
+prob.model.set_input_defaults('diameter', val=0.75, units='m')
+prob.model.set_input_defaults('thickness', val=0.15, units='m')
 
-prob.model.add_design_var('diameter', lower=0.1, upper=1.0, ref0=0.09)
-prob.model.add_design_var('thickness', lower=0.01, upper=0.1, ref0=0.009, ref=0.11)
-prob.model.add_constraint('eig_freq_1', lower=0.035, ref0=0.025, ref=0.045)
-prob.model.add_objective('tot_M_beam', ref0=5000., ref=10000.)
+prob.model.add_design_var('diameter', lower=0.4, upper=3.0)
+prob.model.add_design_var('thickness', lower=0.1, upper=0.25, ref0=0.09, ref=0.26)
+prob.model.add_constraint('eig_freq_1', lower=0.1, ref0=0.09, ref=0.5)
+prob.model.add_objective('tot_M_beam', ref0=50000., ref=100000.)
 
 # Setup and run problem
-prob.setup(mode='auto', force_alloc_complex=True)
+prob.setup(mode='rev', force_alloc_complex=True)
+prob.set_solver_print(1)
 prob.run_driver()
+prob.record('after_run_driver')
 
 # # Setup and check partials
 # prob.setup(mode='rev', force_alloc_complex=True)
 # prob.run_model()
 # prob.check_totals(of=['tot_M_beam', 'eig_freq_1'], wrt=['diameter', 'thickness'])
 
+## --- Debugging Prints
+print('-----------------------------------------------------------------')
+# Instantiate CaseReader
+cr = om.CaseReader('cases.sql')
+driver_cases = cr.list_cases('problem', out_stream=None)
+last_case = cr.get_case('after_run_driver')
+
+print('Minimum: D = %2.2f m, t = %2.3f m' %(last_case.get_val('diameter'), last_case.get_val('thickness')))
+print('m = %2.2f kg, Lowest Freq %2.2f Hz' %(last_case.get_val('tot_M_beam'), last_case.get_val('eig_freq_1')))
+if last_case.get_val('eig_freq_1') < 0.1:
+    print('Constraint violated! f < 0.1 Hz')
+elif last_case.get_val('eig_freq_1') >= 0.1:
+    print('Constraint: f >= 0.1 Hz')
+
+
+print('-----------------------------------------------------------------')
 print('Mode 1 Nat. Period: %3.2f s, (freq: %3.3f rad/s, %3.3f Hz)' % (1./float(prob['eig_freq_1']), (2*np.pi*float(prob['eig_freq_1'])), (float(prob['eig_freq_1']))))
 print('Mode 2 Nat. Period: %3.2f s, (freq: %3.3f rad/s, %3.3f Hz)' % (1./float(prob['eig_freq_2']), (2*np.pi*float(prob['eig_freq_2'])), (float(prob['eig_freq_2']))))
 print('Mode 3 Nat. Period: %3.2f s, (freq: %3.3f rad/s, %3.3f Hz)' % (1./float(prob['eig_freq_3']), (2*np.pi*float(prob['eig_freq_3'])), (float(prob['eig_freq_3']))))
@@ -60,48 +83,6 @@ M_glob_inv = np.linalg.inv(M_glob)
 eig_mat = np.matmul(M_glob_inv, K_glob)
 eig_vals_raw, eig_vecs = np.linalg.eig(eig_mat)
 eig_vals = np.sqrt(np.real(np.sort(eig_vals_raw))) 
-eig_vecs_xloc = np.linspace(0,1,3)
 
 print('Check Eigenfrequencies: %3.3f rad/s, %3.3f rad/s, %3.3f rad/s' % (eig_vals[0], eig_vals[1], eig_vals[2]))
-
-# ## --- Pull out Modeshape
-# x_beamnode_1 = prob['x_beamnode_1']
-# x_beamnode_2 = prob['x_beamnode_2']
-# x_beamnode_3 = prob['x_beamnode_3']
-# x_beamelem_1 = prob['x_beamelem_1']
-# x_beamelem_2 = prob['x_beamelem_2']
-# x_beamelem_3 = prob['x_beamelem_3']
-# x_d_beamnode_1 = prob['x_d_beamnode_1']
-# x_d_beamnode_2 = prob['x_d_beamnode_2']
-# x_d_beamnode_3 = prob['x_d_beamnode_3']
-# x_d_beamelem_1 = prob['x_d_beamelem_1']
-# x_d_beamelem_2 = prob['x_d_beamelem_2']
-# x_d_beamelem_3 = prob['x_d_beamelem_3']
-# x_dd_beamelem_1 = prob['x_dd_beamelem_1']
-# x_dd_beamelem_2 = prob['x_dd_beamelem_2']
-# x_dd_beamelem_3 = prob['x_dd_beamelem_3']
-# z_beamnode = prob['z_beamnode']
-# z_beamelem = prob['z_beamelem']
-
-# mode1_freq = (2*np.pi*float(prob['eig_freq_1']))
-# mode2_freq = (2*np.pi*float(prob['eig_freq_2']))
-# mode3_freq = (2*np.pi*float(prob['eig_freq_3']))
-
-# ## --- Shapes PLOT from FEA
-# font = {'size': 16}
-# plt.rc('font', **font)
-# fig1, ax1 = plt.subplots(figsize=(12,8))
-
-# # Plot shapes
-# shape1 = ax1.plot(z_beamnode, x_beamnode_1, label='1st Mode: %2.2f rad/s' %mode1_freq, c='r', ls='-', marker='.', ms=10, mfc='r', alpha=0.7)
-# shape2 = ax1.plot(z_beamnode, x_beamnode_2, label='2nd Mode: %2.2f rad/s' %mode2_freq, c='g', ls='-', marker='.', ms=10, mfc='g', alpha=0.7)
-# shape3 = ax1.plot(z_beamnode, x_beamnode_3, label='3rd Mode: %2.2f rad/s' %mode3_freq, c='b', ls='-', marker='.', ms=10, mfc='b', alpha=0.7)
-
-# # Set labels and legend
-# ax1.legend()
-# ax1.set_title('Modeshapes from FEA')
-# ax1.set_xlabel('Length (z)')
-# ax1.set_ylabel('Deformation (x)')
-# ax1.grid()
-
-# plt.show()
+print('-----------------------------------------------------------------')

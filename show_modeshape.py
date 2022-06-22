@@ -27,8 +27,8 @@ prob.model.add_subsystem('cantilever',
         'x_beamnode_*', 'x_d_beamnode_*', 'x_beamelem_*', 'x_d_beamelem_*', 'x_dd_beamelem_*',])
 
 # Set inputs
-prob.model.set_input_defaults('diameter', val=0.25, units='m')
-prob.model.set_input_defaults('thickness', val=0.05, units='m')
+prob.model.set_input_defaults('diameter', val=0.75, units='m')
+prob.model.set_input_defaults('thickness', val=0.15, units='m')
 
 # Setup and run problem
 prob.setup(mode='rev', derivatives=True)
