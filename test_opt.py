@@ -27,7 +27,7 @@ prob.model.add_subsystem('cantilever',
 
 # Set driver/recorder
 prob.driver = om.pyOptSparseDriver()
-prob.driver.options['optimizer'] = 'IPOPT'
+prob.driver.options['optimizer'] = 'SLSQP'
 prob.driver.options['debug_print'] = ['desvars','objs','nl_cons']
 
 # Create a recorder variable
@@ -62,7 +62,11 @@ cr = om.CaseReader('cases.sql')
 driver_cases = cr.list_cases('problem', out_stream=None)
 last_case = cr.get_case('after_run_driver')
 
-print('Minimum: D = %2.2f m, t = %2.3f m' %(last_case.get_val('diameter'), last_case.get_val('thickness')))
+# print('Minimum: D = %2.2f m, t = %2.3f m' %(last_case.get_val('diameter'), last_case.get_val('thickness')))
+print('diameters:')
+print(last_case.get_val('D_beam'))
+print('thicknesses:')
+print(last_case.get_val('wt_beam'))
 print('m = %2.2f kg, Lowest Freq %2.2f Hz' %(last_case.get_val('tot_M_beam'), last_case.get_val('eig_freq_1')))
 if last_case.get_val('eig_freq_1') < 0.1:
     print('Constraint violated! f < 0.1 Hz')
