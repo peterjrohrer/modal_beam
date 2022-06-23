@@ -27,7 +27,7 @@ prob.model.add_subsystem('cantilever',
 
 # Set driver/recorder
 prob.driver = om.pyOptSparseDriver()
-prob.driver.options['optimizer'] = 'SLSQP'
+prob.driver.options['optimizer'] = 'SNOPT'
 prob.driver.options['debug_print'] = ['desvars','objs','nl_cons']
 
 # Create a recorder variable
@@ -45,7 +45,7 @@ prob.model.add_constraint('eig_freq_1', lower=0.1, ref0=0.09, ref=0.5)
 prob.model.add_objective('tot_M_beam', ref0=50000., ref=100000.)
 
 # Setup and run problem
-prob.setup(mode='rev', force_alloc_complex=True)
+prob.setup(force_alloc_complex=True)
 prob.set_solver_print(1)
 prob.run_driver()
 prob.record('after_run_driver')
