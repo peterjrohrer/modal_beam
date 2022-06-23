@@ -13,7 +13,7 @@ from cantilever_group import Cantilever
 # Bring in problem with defined defaults
 prob = om.Problem()
 
-elements = 10
+elements = 3
 # cantilever_group = Cantilever(nNode=11, nElem=10, nDOF=20) # 20 DOF because of cantilever BC
 cantilever_group = Cantilever(nNode=(elements+1), nElem=elements, nDOF=(2*elements)) # Increased nodes
 # cantilever_group.linear_solver = om.DirectSolver(assemble_jac=True)
@@ -21,14 +21,13 @@ cantilever_group = Cantilever(nNode=(elements+1), nElem=elements, nDOF=(2*elemen
 
 prob.model.add_subsystem('cantilever', 
     cantilever_group, 
-    promotes_inputs=['D_beam', 'wt_beam'],
+    promotes_inputs=['D_beam'],
     promotes_outputs=['M_global', 'K_global', 'Z_beam', 'L_beam', 'M_beam', 'tot_M_beam',
         'eig_vector_*', 'eig_freq_*', 'z_beamnode', 'z_beamelem',
         'x_beamnode_*', 'x_d_beamnode_*', 'x_beamelem_*', 'x_d_beamelem_*', 'x_dd_beamelem_*',])
 
 # Set inputs
-prob.model.set_input_defaults('D_beam', val=0.75*np.ones(elements), units='m')
-prob.model.set_input_defaults('wt_beam', val=0.15*np.ones(elements), units='m')
+prob.model.set_input_defaults('D_beam', val=0.25*np.ones(elements), units='m')
 
 # Setup and run problem
 prob.setup(mode='rev', derivatives=True)
@@ -38,6 +37,7 @@ prob.run_model()
 print('Mode 1 Nat. Period: %3.2f s, (freq: %3.3f rad/s, %3.3f Hz)' % (1./float(prob['eig_freq_1']), (2*np.pi*float(prob['eig_freq_1'])), (float(prob['eig_freq_1']))))
 print('Mode 2 Nat. Period: %3.2f s, (freq: %3.3f rad/s, %3.3f Hz)' % (1./float(prob['eig_freq_2']), (2*np.pi*float(prob['eig_freq_2'])), (float(prob['eig_freq_2']))))
 print('Mode 3 Nat. Period: %3.2f s, (freq: %3.3f rad/s, %3.3f Hz)' % (1./float(prob['eig_freq_3']), (2*np.pi*float(prob['eig_freq_3'])), (float(prob['eig_freq_3']))))
+print('Eigenvalues: %3.3E, %3.3E, %3.3E' % (float(2.*np.pi*prob['eig_freq_1'])**2., float(2.*np.pi*prob['eig_freq_2'])**2., float(2.*np.pi*prob['eig_freq_3'])**2.))
 
 ## --- Check Eigenvals
 M_glob = prob['M_global'] 
@@ -46,10 +46,9 @@ K_glob = prob['K_global']
 M_glob_inv = np.linalg.inv(M_glob)
 eig_mat = np.matmul(M_glob_inv, K_glob)
 eig_vals_raw, eig_vecs = np.linalg.eig(eig_mat)
-eig_vals = np.sqrt(np.real(np.sort(eig_vals_raw))) 
-eig_vecs_xloc = np.linspace(0,1,3)
+eig_vals = np.real(np.sort(eig_vals_raw))
 
-print('Eigenfrequencies: %3.3f rad/s, %3.3f rad/s, %3.3f rad/s' % (eig_vals[0], eig_vals[1], eig_vals[2]))
+print('Check Eigenvalues: %3.3E, %3.3E, %3.3E' % (eig_vals[0], eig_vals[1], eig_vals[2]))
 
 ## --- Pull out Modeshape
 x_beamnode_1 = prob['x_beamnode_1']

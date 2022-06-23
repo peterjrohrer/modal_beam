@@ -16,14 +16,13 @@ cantilever_group = Cantilever(nNode=(elements+1), nElem=elements, nDOF=(2*elemen
 
 prob.model.add_subsystem('cantilever', 
     cantilever_group, 
-    promotes_inputs=['D_beam', 'wt_beam'],
+    promotes_inputs=['D_beam'],
     promotes_outputs=['M_global', 'K_global', 'Z_beam', 'L_beam', 'M_beam', 'tot_M_beam',
         'eig_vector_*', 'eig_freq_*', 'z_beamnode', 'z_beamelem',
         'x_beamnode_*', 'x_d_beamnode_*', 'x_beamelem_*', 'x_d_beamelem_*', 'x_dd_beamelem_*',])
 
 # Set inputs
-prob.model.set_input_defaults('D_beam', val=0.75*np.ones(elements), units='m')
-prob.model.set_input_defaults('wt_beam', val=0.15*np.ones(elements), units='m')
+prob.model.set_input_defaults('D_beam', val=0.25*np.ones(elements), units='m')
 
 # Setup and run problem
 prob.setup(force_alloc_complex=True, mode='rev')

@@ -52,8 +52,8 @@ class Modeshape(om.Group):
             promotes_outputs=['mel'])
 
         self.add_subsystem('modeshape_elem_EI', 
-            ModeshapeElemEI(nNode=nNode,nElem=nElem), 
-            promotes_inputs=['D_beam', 'wt_beam'], 
+            ModeshapeElemEI(nElem=nElem), 
+            promotes_inputs=['D_beam'], 
             promotes_outputs=['EI_mode_elem'])
 
         self.add_subsystem('modeshape_elem_normforce', 

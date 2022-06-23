@@ -22,7 +22,7 @@ class Cantilever(om.Group):
 
         self.add_subsystem('beam',
             Beam(nNode=nNode,nElem=nElem),
-            promotes_inputs=['D_beam', 'wt_beam'],
+            promotes_inputs=['D_beam'],
             promotes_outputs=['Z_beam', 'L_beam', 'M_beam', 'tot_M_beam'])
 
         modeshape_group = Modeshape(nNode=nNode, nElem=nElem, nDOF=nDOF)
@@ -34,7 +34,7 @@ class Cantilever(om.Group):
 
         self.add_subsystem('modeshape_group',
             modeshape_group,
-            promotes_inputs=['Z_beam', 'D_beam', 'L_beam', 'M_beam', 'tot_M_beam', 'wt_beam'],
+            promotes_inputs=['Z_beam', 'D_beam', 'L_beam', 'M_beam', 'tot_M_beam'],
             promotes_outputs=['eig_vector_*', 'eig_freq_*', 'z_beamnode', 'z_beamelem',
                 'x_beamnode_*', 'x_d_beamnode_*', 
                 'x_beamelem_*', 'x_d_beamelem_*', 'x_dd_beamelem_*',
