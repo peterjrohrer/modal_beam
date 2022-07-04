@@ -8,7 +8,7 @@ from cantilever_group import Cantilever
 # Bring in problem with defined defaults
 prob = om.Problem()
 
-elements = 3
+elements = 5
 # cantilever_group = Cantilever(nNode=11, nElem=10, nDOF=20) # 20 DOF because of cantilever BC
 cantilever_group = Cantilever(nNode=(elements+1), nElem=elements, nDOF=(2*elements)) # Increased nodes
 # cantilever_group.linear_solver = om.DirectSolver(assemble_jac=True)
@@ -24,6 +24,8 @@ prob.model.add_subsystem('cantilever',
 # Set inputs
 prob.model.set_input_defaults('D_beam', val=0.75*np.ones(elements), units='m')
 prob.model.set_input_defaults('wt_beam', val=0.15*np.ones(elements), units='m')
+# prob.model.set_input_defaults('D_beam', val=0.00635*np.ones(elements), units='m') # Match Fox and Kapoor paper
+# prob.model.set_input_defaults('wt_beam', val=0.003174*np.ones(elements), units='m') # Match Fox and Kapoor paper
 
 # Setup and run problem
 prob.setup(force_alloc_complex=True, mode='rev')
@@ -38,4 +40,4 @@ rpart_tol = 1.e-6
 check_partials_data = prob.check_partials(method='fd',form='forward', includes=comp_to_check, step_calc='rel_avg', step=1e-8, show_only_incorrect=False, compact_print=True)
 # check_partials_data = prob.check_partials(method='cs', includes=comp_to_check, show_only_incorrect=False, compact_print=True)
 
-# om.partial_deriv_plot('eig_vectors', 'K_mode', check_partials_data, binary=False)
+om.partial_deriv_plot('eig_vals', 'M_mode', check_partials_data, binary=False)

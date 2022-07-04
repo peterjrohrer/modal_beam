@@ -33,6 +33,7 @@ class Beam(om.ExplicitComponent):
         wt_beam = inputs['wt_beam']
 
         L_overall = 75.
+        # L_overall = 0.0762 # Match Fox and Kapoor paper
         L_per_elem = L_overall/nElem 
         L_beam = np.ones(nElem)*L_per_elem
 
