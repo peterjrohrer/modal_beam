@@ -10,9 +10,6 @@ class Eigenproblem(om.ExplicitComponent):
 
     def setup(self):
         nDOF = self.options['nDOF']
-        # Note scaling inputs does not affect conditioning of M/K matrices
-        # self.add_input('M_mode', val=np.zeros((nDOF, nDOF)), units='t')
-        # self.add_input('K_mode', val=np.zeros((nDOF, nDOF)), units='kN/m')
         self.add_input('M_mode', val=np.zeros((nDOF, nDOF)), units='kg')
         self.add_input('K_mode', val=np.zeros((nDOF, nDOF)), units='N/m')
 
@@ -35,17 +32,18 @@ class Eigenproblem(om.ExplicitComponent):
         # avals = wr + (1j * wi)
         # avecs = vr
         
-        # if any(np.imag(vals) != 0.) :
-        #     raise om.AnalysisError('Imaginary eigenvalues')
-        # if any(np.real(vals) < 0.) :
-        #     raise om.AnalysisError('Negative eigenvalues')
-
         # Normalize eigenvectors with M matrix
         norm_fac = np.zeros((1, nDOF))
         vecs_mortho = np.zeros((nDOF, nDOF))
         for i in range(nDOF):
             norm_fac[0,i] = np.sqrt(1./(vecs[:,i].T @ M @ vecs[:,i]))
             vecs_mortho[:,i] = norm_fac[0,i] * vecs[:,i]
+        
+        # Throw errors for unexpected eigenvalues
+        if any(np.imag(vals) != 0.) :
+            raise om.AnalysisError('Imaginary eigenvalues')
+        if any(np.real(vals) < 0.) :
+            raise om.AnalysisError('Negative eigenvalues')
 
         # Check solution
         if not np.allclose((M @ vecs_mortho) - (K @ vecs_mortho @ np.diag(vals)), np.zeros((nDOF,nDOF)), atol=1.e-03) :
@@ -57,7 +55,7 @@ class Eigenproblem(om.ExplicitComponent):
         outputs['eig_vals'] = np.diag(np.real(vals))
 
         self.vecs = vecs_mortho
-        self.vals = np.diag(vals) # Must keep complex eigenvalues to have correct derivatives?
+        self.vals = np.diag(vals) # Must keep complex eigenvalues to have correct derivatives
     
     def compute_jacvec_product(self, inputs, d_inputs, d_outputs, mode):
         nDOF = self.options['nDOF']        
@@ -75,12 +73,6 @@ class Eigenproblem(om.ExplicitComponent):
                 else:
                     F[i,j] = vals[i,i]/(vals[j,j]-vals[i,i])
 
-        # if mode == 'rev':    
-        #     if 'eig_vectors' in d_outputs or 'eig_vals' in d_outputs:
-        #         if 'M_mode' in d_inputs:
-        #             d_inputs['M_mode'] += np.real(vecs @ ((vals @ d_outputs['eig_vals']) + np.multiply((F),(vecs.T @ d_outputs['eig_vectors'])) - np.multiply((0.5*np.eye(nDOF)), (vecs.T @ d_outputs['eig_vectors']))) @ vecs.T)
-        #         if 'K_mode' in d_inputs:
-        #             d_inputs['K_mode'] += np.real(-1. * vecs @ ((vals @ d_outputs['eig_vals']) + np.multiply((F),(vecs.T @ d_outputs['eig_vectors']))) @ vals @ vecs.T)
         if mode == 'rev':    
             if 'eig_vectors' in d_outputs:
                 if 'M_mode' in d_inputs:
@@ -93,13 +85,6 @@ class Eigenproblem(om.ExplicitComponent):
                 if 'K_mode' in d_inputs:
                     d_inputs['K_mode'] += np.real(-1. * vecs @ (vals @ d_outputs['eig_vals']) @ vals @ vecs.T)
 
-        # elif mode == 'fwd':
-        #     if 'eig_vectors' in d_outputs:
-        #         if 'M_mode' in d_inputs or 'K_mode' in d_inputs:
-        #             d_outputs['eig_vectors'] += np.real((vecs @ np.multiply(F, ((-1. * vecs.T @ d_inputs['K_mode'] @ vecs @ vals) + (vecs.T @ d_inputs['M_mode'] @ vecs)))) - (0.5 * vecs @ np.multiply(np.eye(nDOF), (vecs.T @ d_inputs['M_mode'] @ vecs))))
-        #     if 'eig_vals' in d_outputs:
-        #         if 'M_mode' in d_inputs or 'K_mode' in d_inputs:
-        #             d_outputs['eig_vals'] += np.real(vals @ np.multiply(np.eye(nDOF), ((-1. * vecs.T @ d_inputs['K_mode'] @ vecs @ vals) + (vecs.T @ d_inputs['M_mode'] @ vecs))))
         elif mode == 'fwd':
             if 'eig_vectors' in d_outputs:
                 if 'M_mode' in d_inputs:
