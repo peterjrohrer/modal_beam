@@ -9,17 +9,19 @@ class Eigenproblem(om.ExplicitComponent):
         self.options.declare('nDOF', types=int)
 
     def setup(self):
-        nDOF = self.options['nDOF']
-        self.add_input('M_mode', val=np.zeros((nDOF, nDOF)), units='kg')
-        self.add_input('K_mode', val=np.zeros((nDOF, nDOF)), units='N/m')
+        self.N_DOF = self.options['nDOF']
 
-        self.add_output('eig_vectors', val=np.zeros((nDOF, nDOF)))
-        self.add_output('eig_vals', val=np.zeros((nDOF, nDOF)))
+        self.add_input('M_mode', val=np.ones((self.N_DOF, self.N_DOF)), units='kg')
+        self.add_input('K_mode', val=np.ones((self.N_DOF, self.N_DOF)), units='N/m')
 
-        # self.declare_partials('*','*', method='fd', form='central', step_calc='rel_avg', step=1.e-8)
+        self.add_output('eig_vectors', val=np.ones((self.N_DOF, self.N_DOF)))
+        self.add_output('eig_vals', val=np.eye(self.N_DOF))
+
+    # def setup_partials(self):
+    #     self.declare_partials('eig_vectors', ['M_mode', 'K_mode'])
+    #     self.declare_partials('eig_vals', ['M_mode', 'K_mode'])
 
     def compute(self, inputs, outputs):
-        nDOF = self.options['nDOF']
         K = inputs['K_mode']
         M = inputs['M_mode']
 
@@ -33,50 +35,61 @@ class Eigenproblem(om.ExplicitComponent):
         # avecs = vr
         
         # Normalize eigenvectors with M matrix
-        norm_fac = np.zeros((1, nDOF))
-        vecs_mortho = np.zeros((nDOF, nDOF))
-        for i in range(nDOF):
+        norm_fac = np.zeros((1, self.N_DOF))
+        vecs_mortho = np.zeros((self.N_DOF, self.N_DOF))
+        for i in range(self.N_DOF):
             norm_fac[0,i] = np.sqrt(1./(vecs[:,i].T @ M @ vecs[:,i]))
-            vecs_mortho[:,i] = norm_fac[0,i] * vecs[:,i]
+            if not np.isnan(norm_fac[0,i]) : # To avoid ending up with an entire eigenvector of NaNs 
+                vecs_mortho[:,i] = norm_fac[0,i] * vecs[:,i]
         
-        # Throw errors for unexpected eigenvalues
-        if any(np.imag(vals) != 0.) :
-            raise om.AnalysisError('Imaginary eigenvalues')
-        if any(np.real(vals) < 0.) :
-            raise om.AnalysisError('Negative eigenvalues')
+        # # Throw errors for unexpected eigenvalues
+        # if any(np.imag(vals) != 0.) :
+        #     raise om.AnalysisError('Imaginary eigenvalues')
+        # if any(np.real(vals) < -1.e-03) :
+        #     raise om.AnalysisError('Negative eigenvalues')
 
         # Check solution
-        if not np.allclose((M @ vecs_mortho) - (K @ vecs_mortho @ np.diag(vals)), np.zeros((nDOF,nDOF)), atol=1.e-03) :
+        if not np.allclose((M @ vecs) - (K @ vecs @ np.diag(vals)), np.zeros((self.N_DOF,self.N_DOF)), atol=1.0) :
             raise om.AnalysisError('Eigenvalue problem looks wrong')
-        if not np.allclose((vecs_mortho.T @ M @ vecs_mortho) - np.eye(nDOF), np.zeros((nDOF,nDOF)), atol=1.e-03) :
+        if not np.allclose((vecs_mortho.T @ M @ vecs_mortho) - np.eye(self.N_DOF), np.zeros((self.N_DOF,self.N_DOF)), atol=1.0) :
             raise om.AnalysisError('Eigenvectors not scaled properly')
+
+        # Calculate modal expansion
+        u_vec = np.ones(self.N_DOF)
+        q_vec = np.zeros(self.N_DOF)
+        for i in range(self.N_DOF):
+            q_vec[i] = (vecs[:,i].T @ M @ u_vec)/(vecs[:,i].T @ M @ vecs[:,i])
 
         outputs['eig_vectors'] = vecs_mortho
         outputs['eig_vals'] = np.diag(np.real(vals))
 
         self.vecs = vecs_mortho
+        self.vecs_unsc = vecs
         self.vals = np.diag(vals) # Must keep complex eigenvalues to have correct derivatives
     
-    def compute_jacvec_product(self, inputs, d_inputs, d_outputs, mode):
-        nDOF = self.options['nDOF']        
-        vecs = self.vecs
-        vals = self.vals
-        K = inputs['K_mode']
-        M = inputs['M_mode']
-
         ## Based on He, Jonsson, Martins (2022) - Section C. "Modal Method"
-        F = np.zeros((nDOF, nDOF), dtype=complex)
-        for i in range(nDOF):
-            for j in range(nDOF):
+        F = np.zeros((self.N_DOF, self.N_DOF), dtype=complex)
+        for i in range(self.N_DOF):
+            for j in range(self.N_DOF):
                 if i == j:
                     F[i,j] = 0.
                 else:
-                    F[i,j] = vals[i,i]/(vals[j,j]-vals[i,i])
+                    F[i,j] = vals[i]/(vals[j]-vals[i])
+        self.F_matrix = F
 
+    def compute_jacvec_product(self, inputs, d_inputs, d_outputs, mode):
+        vecs = self.vecs
+        vecs_unsc = self.vecs_unsc
+        vals = np.real(self.vals)
+        K = inputs['K_mode']
+        M = inputs['M_mode']
+        F = self.F_matrix
+
+        ## Based on He, Jonsson, Martins (2022) - Section C. "Modal Method"
         if mode == 'rev':    
             if 'eig_vectors' in d_outputs:
                 if 'M_mode' in d_inputs:
-                    d_inputs['M_mode'] += np.real(vecs @ (np.multiply(F,(vecs.T @ d_outputs['eig_vectors'])) - np.multiply((0.5*np.eye(nDOF)), (vecs.T @ d_outputs['eig_vectors']))) @ vecs.T)
+                    d_inputs['M_mode'] += np.real(vecs @ (np.multiply(F,(vecs.T @ d_outputs['eig_vectors'])) - np.multiply((0.5*np.eye(self.N_DOF)), (vecs.T @ d_outputs['eig_vectors']))) @ vecs.T)
                 if 'K_mode' in d_inputs:
                     d_inputs['K_mode'] += np.real(-1. * vecs @ np.multiply(F,(vecs.T @ d_outputs['eig_vectors'])) @ vals @ vecs.T)
             if 'eig_vals' in d_outputs:
@@ -88,77 +101,11 @@ class Eigenproblem(om.ExplicitComponent):
         elif mode == 'fwd':
             if 'eig_vectors' in d_outputs:
                 if 'M_mode' in d_inputs:
-                    d_outputs['eig_vectors'] += np.real((vecs @ np.multiply(F, (vecs.T @ d_inputs['M_mode'] @ vecs))) - (0.5 * vecs @ np.multiply(np.eye(nDOF), (vecs.T @ d_inputs['M_mode'] @ vecs))))
+                    d_outputs['eig_vectors'] += np.real((vecs @ np.multiply(F, (vecs.T @ d_inputs['M_mode'] @ vecs))) - (0.5 * vecs @ np.multiply(np.eye(self.N_DOF), (vecs.T @ d_inputs['M_mode'] @ vecs))))
                 if 'K_mode' in d_inputs:
                     d_outputs['eig_vectors'] += np.real((vecs @ np.multiply(F, (-1. * vecs.T @ d_inputs['K_mode'] @ vecs @ vals))))
             if 'eig_vals' in d_outputs:
                 if 'M_mode' in d_inputs:
-                    d_outputs['eig_vals'] += np.real(vals @ np.multiply(np.eye(nDOF), (vecs.T @ d_inputs['M_mode'] @ vecs)))
+                    d_outputs['eig_vals'] += np.real(vals @ np.multiply(np.eye(self.N_DOF), (vecs.T @ d_inputs['M_mode'] @ vecs)))
                 if 'K_mode' in d_inputs:
-                    d_outputs['eig_vals'] += np.real(vals @ np.multiply(np.eye(nDOF), (-1. * vecs.T @ d_inputs['K_mode'] @ vecs @ vals)))
-
-        ## -------
-        # ## Based on Fox and Kapoor (1968)
-        #     # FWD mode only!
-        # a = np.zeros((nDOF,nDOF), dtype=complex)
-        # F = np.zeros((nDOF, nDOF), dtype=complex)
-        # G = np.zeros((nDOF, nDOF), dtype=complex)
-        # # for i in range(nDOF):
-        # #     for j in range(nDOF):
-        # #         if i == j:
-        # #             F[i,j] = 0.
-        # #         else:
-        # #             F[i,j] = vals[i,i]/(vals[j,j]-vals[i,i])
-        # #         G[i,j] = vals[i,i]/vals[j,j]
-
-        # if mode == 'rev':
-        #     for i in range(nDOF):
-        #         for j in range(nDOF):
-        #             if i == j:
-        #                 F[i,j] = 0.
-        #             else:
-        #                 F[i,j] = vals[i,i]/(vals[j,j]-vals[i,i])
-        #             G[i,j] = vals[i,i]/vals[j,j]    
-        #     # if 'eig_vectors' in d_outputs:
-        #     #     if 'M_mode' in d_inputs:
-        #     #         d_inputs['M_mode'] += (vecs @ ((vals.T @ d_outputs['eig_vals']) + np.multiply((F-G),(vecs.T @ d_outputs['eig_vectors'])) - np.multiply((0.5*np.eye(nDOF)), (vecs.T @ d_outputs['eig_vectors']))) @ vecs.T) + ((np.linalg.inv(K) @ d_outputs['eig_vectors']) @ np.linalg.inv(vals) @ vecs.T)
-        #     #     if 'K_mode' in d_inputs:
-        #     #         d_inputs['K_mode'] += (-1. * vecs @ ((vals.T @ d_outputs['eig_vals']) + np.multiply((F-G),(vecs.T @ d_outputs['eig_vectors']))) @ vals @ vecs.T) - ((np.linalg.inv(K) @ d_outputs['eig_vectors']) @ vecs.T)
-        #     # if 'eig_vals' in d_outputs:
-        #     #     if 'M_mode' in d_inputs:
-        #     #         d_inputs['M_mode'] += (vecs @ ((vals.T @ d_outputs['eig_vals']) + np.multiply((F-G),(vecs.T @ d_outputs['eig_vectors'])) - np.multiply((0.5*np.eye(nDOF)), (vecs.T @ d_outputs['eig_vectors']))) @ vecs.T) + ((np.linalg.inv(K) @ d_outputs['eig_vectors']) @ np.linalg.inv(vals) @ vecs.T)
-        #     #     if 'K_mode' in d_inputs:
-        #     #         d_inputs['K_mode'] += (-1. * vecs @ ((vals.T @ d_outputs['eig_vals']) + np.multiply((F-G),(vecs.T @ d_outputs['eig_vectors']))) @ vals @ vecs.T) - ((np.linalg.inv(K) @ d_outputs['eig_vectors']) @ vecs.T)
-
-        # elif mode == 'fwd':
-        #     if 'eig_vectors' in d_outputs:
-        #         # # --- Using Formulation 1
-        #         # dF_dj = np.zeros((nDOF,nDOF), dtype=complex)
-        #         # dX_dj = np.zeros((nDOF,nDOF), dtype=complex)
-        #         # for i in range(nDOF):
-        #         #     # Each F matrix should be singular - they are not??
-        #         #     F = K - (vals[i,i]*M)
-        #         #     dF_dj = d_inputs['K_mode'] - (vals[i,i] * d_inputs['M_mode']) - (d_outputs['eig_vals'] @ M)
-        #         #     X = np.reshape(vecs[:,i],(nDOF,1))
-        #         #     dX_dj[:,i] += np.reshape(-1. * np.linalg.inv((F @ F) + (2. * M @ X @ X.T @ M)) @ ((F @ dF_dj) + (M @ X @ X.T @ d_inputs['M_mode'])) @ X,(nDOF))
-
-        #         # if 'M_mode' in d_inputs or 'K_mode' in d_inputs:
-        #         #     d_outputs['eig_vectors'] += np.real(dX_dj)
-                
-        #         # --- Using Formulation 2
-        #         dX_dj = np.zeros((nDOF,nDOF), dtype=complex)
-        #         for i in range(nDOF):
-        #             for k in range(nDOF):
-        #                 if i != k :
-        #                     a[i,k] += (vecs[:,k] @ (d_inputs['K_mode'] - (vals[i,i]*d_inputs['M_mode'])) @ vecs[:,i])/(vals[i,i]-vals[k,k])
-        #                 elif i == k :
-        #                     a[i,k] += (-0.5) * (vecs[:,i].T @ d_inputs['M_mode'] @ vecs[:,i])
-        #             # for k in range(int(nDOF/2),nDOF) :
-        #                 dX_dj[:,i] += a[i,k] * vecs[:,k]
-        #         if 'M_mode' in d_inputs or 'K_mode' in d_inputs:
-        #             d_outputs['eig_vectors'] += np.abs(dX_dj)
-            
-        #     if 'eig_vals' in d_outputs:
-        #         if 'M_mode' in d_inputs or 'K_mode' in d_inputs:
-        #             for i in range(nDOF):
-        #                 d_outputs['eig_vals'][i,i] += np.real(vecs[:,i].T @ (d_inputs['K_mode'] - (vals[i,i] * d_inputs['M_mode'])) @ vecs[:,i])
+                    d_outputs['eig_vals'] += np.real(vals @ np.multiply(np.eye(self.N_DOF), (-1. * vecs.T @ d_inputs['K_mode'] @ vecs @ vals)))
