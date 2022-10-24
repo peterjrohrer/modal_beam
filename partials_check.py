@@ -1,54 +1,44 @@
+# %% 
 import numpy as np
 import myconstants as myconst
-from openmdao.api import Problem, partial_deriv_plot
 
-from wind_wave_prob import WindWaveProb
-
-# Load input data (starting points)
-design = 'tian_10mw'
-inputs_file = 'inputs/'+design+'.txt'
-with open(inputs_file, 'r') as f:
-    s = f.read()
-    input_data = eval(s)
-
-# Create arrays of frequencies
-freqs = {
-    'omega': np.linspace(0.05, 2.5, 240),
-    'omega_wave': np.linspace(0.01, 3.0, 120),
-    'white_noise_wave': True
-}
-
-# Create array of pontoon locations
-num_pontoons = 3
-pont_data = {
-    'N_pont': num_pontoons,
-    'N_pontelem': 10,
-    'theta': np.delete(np.linspace(np.pi, 3*np.pi, num_pontoons+1),-1),
-    'shape_pont': 'rect'
-}
-
-# Precomputed blade data
-blades = {
-    'Rtip' : 89.165, 
-    'Rhub' : 2.8, 
-    'N_b_elem' : 20, 
-    'indfile' : 'WindLoad/DTU10MW_indfacs.dat', 
-    'bladefile' : 'WindLoad/DTU10MWblade.dat', 
-    'foilnames' : ['foil1', 'foil11', 'foil12', 'foil13', 'foil14', 'foil15', 'foil16', 'foil17', 'foil18', 'foil19'], 
-    'foilfolder' : 'WindLoad/Airfoils/', 
-    'windfolder' : 'WindLoad/Windspeeds/'
-}
+import openmdao.api as om
+from cantilever_group import Cantilever
 
 # Bring in problem with defined defaults
-model = WindWaveProb(freqs=freqs,pont_data=pont_data,blades=blades,input_data=input_data)
-prob = Problem(model)
+prob = om.Problem()
 
-prob.setup(force_alloc_complex=True)
+elements = 10
+print('Number of elements: %1.1d' %elements)
+# cantilever_group = Cantilever(nNode=11, nElem=10, nDOF=20) # 20 DOF because of cantilever BC
+cantilever_group = Cantilever(nNode=(elements+1), nElem=elements, nDOF=(2*elements)) # Increased nodes
+# cantilever_group.linear_solver = om.DirectSolver(assemble_jac=True)
+# cantilever_group.nonlinear_solver = om.NonlinearBlockGS(maxiter=100, atol=1e-6, rtol=1e-6, use_aitken=True)
+
+prob.model.add_subsystem('cantilever', 
+    cantilever_group, 
+    promotes_inputs=['D_beam', 'wt_beam'],
+    promotes_outputs=['M_global', 'K_global', 'Z_beam', 'L_beam', 'M_beam', 'tot_M_beam',
+        'eig_vector_*', 'eig_freq_*', 'z_beamnode', 'z_beamelem',
+        'x_beamnode_*', 'x_d_beamnode_*', 'x_beamelem_*', 'x_d_beamelem_*', 'x_dd_beamelem_*',])
+
+# Set inputs
+prob.model.set_input_defaults('D_beam', val=0.75*np.ones(elements), units='m')
+prob.model.set_input_defaults('wt_beam', val=0.15*np.ones(elements), units='m')
+# prob.model.set_input_defaults('D_beam', val=0.00635*np.ones(elements), units='m') # Match Fox and Kapoor paper
+# prob.model.set_input_defaults('wt_beam', val=0.003174*np.ones(elements), units='m') # Match Fox and Kapoor paper
+
+# Setup and run problem
+prob.setup(force_alloc_complex=True, mode='rev')
+prob.set_solver_print(1)
 prob.run_model()
 
-comp_to_check = 'wind_wave_group.substructure.modeshape_group.modeshape_elem_normforce'
+comp_to_check = 'cantilever.modeshape_group.eigenproblem'
+apart_tol = 1.e-6
+rpart_tol = 1.e-6
 
-check_partials_data = prob.check_partials(method='fd',form='central',step=1e-6, includes=comp_to_check, show_only_incorrect=True, compact_print=True)
-# check_partials_data = prob.check_partials(method='cs', includes=comp_to_check, show_only_incorrect=True, compact_print=True)
+# check_partials_data = prob.check_partials(method='fd', form='central', abs_err_tol=apart_tol, rel_err_tol=rpart_tol, step_calc='rel_avg', step=1e-8, show_only_incorrect=True, compact_print=True)
+check_partials_data = prob.check_partials(method='fd',form='forward', includes=comp_to_check, step_calc='rel_avg', step=1e-8, show_only_incorrect=False, compact_print=False)
+# check_partials_data = prob.check_partials(method='cs', includes=comp_to_check, show_only_incorrect=False, compact_print=True)
 
-partial_deriv_plot('normforce_mode_elem', 'Z_tower', check_partials_data, binary=False)
+# om.partial_deriv_plot('eig_vals', 'M_mode', check_partials_data, binary=False)

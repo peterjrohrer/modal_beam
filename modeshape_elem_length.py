@@ -13,32 +13,31 @@ class ModeshapeElemLength(ExplicitComponent):
         nNode = self.options['nNode']        
         nElem = self.options['nElem']
 
-        self.add_input('z_towernode', val=np.zeros(nNode), units='m/m')
+        self.add_input('z_beamnode', val=np.zeros(nNode), units='m/m')
 
         self.add_output('L_mode_elem', val=np.zeros(nElem), units='m')
 
         self.declare_partials('*', '*')
 
     def compute(self, inputs, outputs):
-        z_towernode = inputs['z_towernode']
+        z_beamnode = inputs['z_beamnode']
 
-        N_towerelem = len(z_towernode) - 1
+        N_beamelem = len(z_beamnode) - 1
 
-        outputs['L_mode_elem'] = np.zeros(N_towerelem)
+        outputs['L_mode_elem'] = np.zeros(N_beamelem)
 
-        for i in range(N_towerelem):
-            outputs['L_mode_elem'][i] = (z_towernode[i + 1] - z_towernode[i])
+        for i in range(N_beamelem):
+            outputs['L_mode_elem'][i] = (z_beamnode[i + 1] - z_beamnode[i])
 
     def compute_partials(self, inputs, partials):
         nNode = self.options['nNode']        
         nElem = self.options['nElem']
-        z_towernode = inputs['z_towernode']
+        z_beamnode = inputs['z_beamnode']
 
-        N_towerelem = len(z_towernode) - 1
+        N_beamelem = len(z_beamnode) - 1
 
-        partials['L_mode_elem', 'z_towernode'] = np.zeros((nElem, nNode))
-        partials['L_mode_elem', 'Z_tower'] = np.zeros((nElem, nNode))
+        partials['L_mode_elem', 'z_beamnode'] = np.zeros((nElem, nNode))
 
-        for i in range(N_towerelem):
-            partials['L_mode_elem', 'z_towernode'][i, i] = -1.
-            partials['L_mode_elem', 'z_towernode'][i, i + 1] = 1.
+        for i in range(N_beamelem):
+            partials['L_mode_elem', 'z_beamnode'][i, i] = -1.
+            partials['L_mode_elem', 'z_beamnode'][i, i + 1] = 1.

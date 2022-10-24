@@ -4,13 +4,13 @@ import openmdao.api as om
 from choose_eig_vec import ChooseEigVec
 
 from modeshape_disp import ModeshapeDisp
-from tower_node_1_lhs import TowerNode1LHS
-from tower_node_1_rhs import TowerNode1RHS
-from tower_node_1_deriv import TowerNode1Deriv
+from beam_node_1_lhs import BeamNode1LHS
+from beam_node_1_rhs import BeamNode1RHS
+from beam_node_1_deriv import BeamNode1Deriv
 
-from tower_elem_disp import TowerElemDisp
-from tower_elem_1_deriv import TowerElem1Deriv
-from tower_elem_2_deriv import TowerElem2Deriv
+from beam_elem_disp import BeamElemDisp
+from beam_elem_1_deriv import BeamElem1Deriv
+from beam_elem_2_deriv import BeamElem2Deriv
 
 from modeshape_num import ModeshapeNum
 
@@ -36,44 +36,45 @@ class Eig2Mode(om.Group):
         self.add_subsystem('modeshape_disp', 
             ModeshapeDisp(nNode=nNode,nElem=nElem,nDOF=nDOF), 
             promotes_inputs=['eig_vector'], 
-            promotes_outputs=['x_towernode'])
+            promotes_outputs=['x_beamnode'])
 
-        self.add_subsystem('tower_node_1_lhs', 
-            TowerNode1LHS(nNode=nNode,nElem=nElem,nDOF=nDOF), 
-            promotes_inputs=['z_towernode'], 
-            promotes_outputs=['tower_spline_lhs'])
+        self.add_subsystem('beam_node_1_lhs', 
+            BeamNode1LHS(nNode=nNode,nElem=nElem,nDOF=nDOF), 
+            promotes_inputs=['z_beamnode'], 
+            promotes_outputs=['beam_spline_lhs'])
 
-        self.add_subsystem('tower_node_1_rhs', 
-            TowerNode1RHS(nNode=nNode,nElem=nElem,nDOF=nDOF), 
-            promotes_inputs=['z_towernode', 'x_towernode'], 
-            promotes_outputs=['tower_spline_rhs'])
+        self.add_subsystem('beam_node_1_rhs', 
+            BeamNode1RHS(nNode=nNode,nElem=nElem,nDOF=nDOF), 
+            promotes_inputs=['z_beamnode', 'x_beamnode'], 
+            promotes_outputs=['beam_spline_rhs'])
 
-        tower_node_1_deriv = TowerNode1Deriv(nNode=nNode,nElem=nElem,nDOF=nDOF)
-        tower_node_1_deriv.linear_solver = om.ScipyKrylov()
-        # tower_node_1_deriv.linear_solver.precon = om.DirectSolver(assemble_jac=True)
-        #tower_node_1_deriv.linear_solver = om.DirectSolver(assemble_jac=True)
+        beam_node_1_deriv = BeamNode1Deriv(nNode=nNode,nElem=nElem,nDOF=nDOF)
+        beam_node_1_deriv.linear_solver = om.ScipyKrylov()
+        beam_node_1_deriv.linear_solver.precon = om.DirectSolver(assemble_jac=True)
+        # beam_node_1_deriv.linear_solver = om.DirectSolver(assemble_jac=True)
+        # beam_node_1_deriv.nonlinear_solver = om.NewtonSolver(solve_subsystems=False)
 
-        self.add_subsystem('tower_node_1_deriv', 
-            tower_node_1_deriv, 
-            promotes_inputs=['tower_spline_lhs', 'tower_spline_rhs'], 
-            promotes_outputs=['x_d_towernode'])
+        self.add_subsystem('beam_node_1_deriv', 
+            beam_node_1_deriv, 
+            promotes_inputs=['beam_spline_lhs', 'beam_spline_rhs'], 
+            promotes_outputs=['x_d_beamnode'])
 
-        self.add_subsystem('tower_elem_disp', 
-            TowerElemDisp(nNode=nNode,nElem=nElem,nDOF=nDOF), 
-            promotes_inputs=['z_towernode', 'z_towerelem', 'x_towernode', 'x_d_towernode'], 
-            promotes_outputs=['x_towerelem'])
+        self.add_subsystem('beam_elem_disp', 
+            BeamElemDisp(nNode=nNode,nElem=nElem,nDOF=nDOF), 
+            promotes_inputs=['z_beamnode', 'z_beamelem', 'x_beamnode', 'x_d_beamnode'], 
+            promotes_outputs=['x_beamelem'])
 
-        self.add_subsystem('tower_elem_1_deriv', 
-            TowerElem1Deriv(nNode=nNode,nElem=nElem,nDOF=nDOF), 
-            promotes_inputs=['z_towernode', 'x_towernode', 'x_d_towernode'], 
-            promotes_outputs=['x_d_towerelem'])
+        self.add_subsystem('beam_elem_1_deriv', 
+            BeamElem1Deriv(nNode=nNode,nElem=nElem,nDOF=nDOF), 
+            promotes_inputs=['z_beamnode', 'x_beamnode', 'x_d_beamnode'], 
+            promotes_outputs=['x_d_beamelem'])
 
-        self.add_subsystem('tower_elem_2_deriv', 
-            TowerElem2Deriv(nNode=nNode,nElem=nElem,nDOF=nDOF), 
-            promotes_inputs=['z_towernode', 'x_d_towernode'], 
-            promotes_outputs=['x_dd_towerelem'])
+        self.add_subsystem('beam_elem_2_deriv', 
+            BeamElem2Deriv(nNode=nNode,nElem=nElem,nDOF=nDOF), 
+            promotes_inputs=['z_beamnode', 'x_d_beamnode'], 
+            promotes_outputs=['x_dd_beamelem'])
 
         self.add_subsystem('modeshape_num',
             ModeshapeNum(mode=mode_num,nNode=nNode,nElem=nElem,nDOF=nDOF),
-            promotes_inputs=['x_towernode', 'x_d_towernode', 'x_towerelem', 'x_d_towerelem', 'x_dd_towerelem'],
-            promotes_outputs=['x_towernode_%d' % mode_num, 'x_d_towernode_%d' % mode_num, 'x_towerelem_%d' % mode_num, 'x_d_towerelem_%d' % mode_num, 'x_dd_towerelem_%d' % mode_num])
+            promotes_inputs=['x_beamnode', 'x_d_beamnode', 'x_beamelem', 'x_d_beamelem', 'x_dd_beamelem'],
+            promotes_outputs=['x_beamnode_%d' % mode_num, 'x_d_beamnode_%d' % mode_num, 'x_beamelem_%d' % mode_num, 'x_d_beamelem_%d' % mode_num, 'x_dd_beamelem_%d' % mode_num])

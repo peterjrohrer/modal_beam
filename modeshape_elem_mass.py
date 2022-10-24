@@ -13,8 +13,8 @@ class ModeshapeElemMass(ExplicitComponent):
         nNode = self.options['nNode']        
         nElem = self.options['nElem']
 
-        self.add_input('L_tower', val=np.zeros(nElem), units='m')
-        self.add_input('M_tower', val=np.zeros(nElem), units='kg')
+        self.add_input('L_beam', val=np.zeros(nElem), units='m')
+        self.add_input('M_beam', val=np.zeros(nElem), units='kg')
         self.add_input('L_mode_elem', val=np.zeros(nElem), units='m')
 
         self.add_output('mel', val=np.zeros((nElem, 4, 4)), units='kg')
@@ -22,17 +22,17 @@ class ModeshapeElemMass(ExplicitComponent):
         self.declare_partials('*', '*')
 
     def compute(self, inputs, outputs):
-        L_tower = inputs['L_tower']
-        M_tower = inputs['M_tower']
+        L_beam = inputs['L_beam']
+        M_beam = inputs['M_beam']
         L = inputs['L_mode_elem']
 
-        N_towerelem = len(M_tower)
-        N_elem = N_towerelem
+        N_beamelem = len(M_beam)
+        N_elem = N_beamelem
 
         m = np.zeros(N_elem)  # kg/m
 
-        for i in range(N_towerelem):
-            m[i] = M_tower[i] / L_tower[i]
+        for i in range(N_beamelem):
+            m[i] = M_beam[i] / L_beam[i]
 
         outputs['mel'] = np.zeros((N_elem, 4, 4))
         
@@ -51,38 +51,30 @@ class ModeshapeElemMass(ExplicitComponent):
 
     ##TODO Check these partials!
     def compute_partials(self, inputs, partials):
-        L_tower = inputs['L_tower']
-        M_tower = inputs['M_tower']
+        L_beam = inputs['L_beam']
+        M_beam = inputs['M_beam']
         L = inputs['L_mode_elem']
-
-        partials['mel', 'D_spar'] = np.zeros((352, 10))
-        partials['mel', 'L_spar'] = np.zeros((352, 10))
-        partials['mel', 'M_spar'] = np.zeros((352, 10))
-        partials['mel', 'L_tower'] = np.zeros((352, 10))
-        partials['mel', 'M_tower'] = np.zeros((352, 10))
-        partials['mel', 'spar_draft'] = np.zeros(352)
-        partials['mel', 'M_ball_elem'] = np.zeros((352, 10))
-        partials['mel', 'L_ball_elem'] = np.zeros((352, 10))
-        partials['mel', 'L_ball'] = np.zeros(352)
-        partials['mel', 'z_sparnode'] = np.zeros((352, 13))
-        partials['mel', 'L_mode_elem'] = np.zeros((352, 22))
-
-        N_towerelem = len(M_tower)
-        N_elem = N_towerelem
-
-        dm_dLt = np.zeros((N_elem, len(L_tower)))
-        dm_dMt = np.zeros((N_elem, len(M_tower)))
         
-        m = np.zeros(N_elem)
+        nElem = self.options['nElem']
+        N_mel_part = 4 * 4 * nElem
 
-        for i in range(N_towerelem):
-            m[i] = M_tower[i] / L_tower[i]
-            dm_dLt[i, i] += -M_tower[i] / L_tower[i]**2.
-            dm_dMt[i, i] += 1. / L_tower[i]
+        partials['mel', 'L_beam'] = np.zeros((N_mel_part, nElem))
+        partials['mel', 'M_beam'] = np.zeros((N_mel_part, nElem))
+        partials['mel', 'L_mode_elem'] = np.zeros((N_mel_part, nElem))
 
-        dmel_dm = np.zeros((N_elem, 4, 4))
-        dmel_dLe = np.zeros((N_elem, 4, 4))
-        for i in range(N_elem):
+        dm_dLt = np.zeros((nElem, len(L_beam)))
+        dm_dMt = np.zeros((nElem, len(M_beam)))
+
+        m = np.zeros(nElem)
+
+        for i in range(nElem):
+            m[i] = M_beam[i] / L_beam[i]
+            dm_dLt[i, i] += -M_beam[i] / L_beam[i]**2.
+            dm_dMt[i, i] += 1. / L_beam[i]
+
+        dmel_dm = np.zeros((nElem, 4, 4))
+        dmel_dLe = np.zeros((nElem, 4, 4))
+        for i in range(nElem):
             dmel_dm[i, 0, 0] = dmel_dm[i, 2, 2] = 156.
             dmel_dm[i, 1, 1] = dmel_dm[i, 3, 3] = 4. * L[i]**2.
             dmel_dm[i, 0, 1] = dmel_dm[i, 1, 0] = 22. * L[i]
@@ -101,17 +93,17 @@ class ModeshapeElemMass(ExplicitComponent):
             dmel_dLe[i, 1, 3] = dmel_dLe[i, 3, 1] = -9. * L[i]**2. * m[i] / 420.
             dmel_dm[i] = dmel_dm[i] * L[i] / 420.
 
-        for i in range(len(L_tower)):
+        for i in range(len(L_beam)):
             dmel_dLt = []
             dmel_dMt = []
-            for j in range(N_elem):
+            for j in range(nElem):
                 for k in range(4):
                     for l in range(4):
                         dmel_dLt.append(dmel_dm[j, k, l] * dm_dLt[j, i])
                         dmel_dMt.append(dmel_dm[j, k, l] * dm_dMt[j, i])
 
-            partials['mel', 'L_tower'][:, i] = np.array(dmel_dLt)
-            partials['mel', 'M_tower'][:, i] = np.array(dmel_dMt)
+            partials['mel', 'L_beam'][:, i] = np.array(dmel_dLt)
+            partials['mel', 'M_beam'][:, i] = np.array(dmel_dMt)
 
-        for i in range(N_elem):
+        for i in range(nElem):
             partials['mel', 'L_mode_elem'][16 * i:16 * i + 16, i] = dmel_dLe[i].flatten()

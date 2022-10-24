@@ -1,0 +1,58 @@
+
+ ==============================
+ S N O P T  7.7.1    (Nov 2018)
+ ==============================
+ 
+ SNMEMB EXIT 100 -- finished successfully
+ SNMEMB INFO 104 -- memory requirements estimated
+
+ ==============================
+ S N O P T  7.7.1    (Nov 2018)
+ ==============================
+ 
+ 
+
+ Nonlinear constraints       1     Linear constraints       0
+ Nonlinear variables        20     Linear variables         0
+ Jacobian  variables        20     Objective variables     20
+ Total constraints           1     Total variables         20
+ 
+
+ 
+ The user has defined      20   out of      20   constraint gradients.
+ The user has defined      20   out of      20   objective  gradients.
+ 
+
+ Major Minors     Step   nCon Feasible  Optimal  MeritFunction     nS Penalty
+     0     20               1 (0.0E+00) 1.0E-01  2.3293028E+00     19           r
+     1     19  1.0E+00      2  6.5E-02  3.1E-02  6.6653874E-01                  r
+     2      0  1.0E+00      3  8.1E-02  1.6E-04  2.5292303E-01                s
+     3      0  1.4E-09     13  8.1E-02  4.7E-05  2.5292303E-01
+     4      0  1.4E-09     23  8.1E-02  6.3E-04  2.5292303E-01
+     5      0  1.3E-09     33  8.1E-02  3.9E-04  2.5292303E-01
+     6      0  1.4E-09     43  8.1E-02  6.3E-04  2.5292303E-01
+     6      0              52  8.1E-02  6.3E-04  2.5292303E-01                  R
+     6      0              61  8.1E-02  6.3E-04  2.5292303E-01                  r
+ 
+ SNOPTC EXIT  40 -- terminated after numerical difficulties
+ SNOPTC INFO  41 -- current point cannot be improved
+
+ Problem name                 Optimiza
+ No. of iterations                  39   Objective            2.5256485401E-01
+ No. of major iterations             6   Linear    obj. term  0.0000000000E+00
+ Penalty parameter           0.000E+00   Nonlinear obj. term  2.5256485401E-01
+ User function calls (total)        71
+ No. of degenerate steps             0   Percentage                       0.00
+ Max x                       1 7.9E-01   Max pi                      1 4.0E-03
+ Max Primal infeas          21 8.1E-02   Max Dual infeas             1 7.4E-04
+ Nonlinear constraint violn    8.1E-02
+ 
+ 
+
+ Solution printed on file  18
+ 
+ Time for MPS input                             0.00 seconds
+ Time for solving problem                       2.12 seconds
+ Time for solution output                       0.00 seconds
+ Time for constraint functions                  2.12 seconds
+ Time for objective function                    0.00 seconds
