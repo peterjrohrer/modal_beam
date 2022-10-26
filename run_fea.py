@@ -5,7 +5,7 @@ import time
 import argparse
 
 import matplotlib as mpl
-mpl.use('Agg')
+# mpl.use('Agg')
 import matplotlib.pyplot as plt
 import os
 import numpy as np
@@ -13,6 +13,8 @@ import numpy as np
 from beam_props import *
 from elem_props import *
 from global_props import *
+from eigenproblem import *
+from modeshape import * 
 from utils import *
 
 MyDir=os.path.dirname(__file__)
@@ -28,7 +30,7 @@ def doArgs(argList, name):
 
 def UniformBeam():   
     # --- Parameters
-    nElem = 10 # Number of elements along the beam
+    nElem = 20 # Number of elements along the beam
     nNode = nElem +1 # Number of nodes (one on each end of each element)
     nDOFperNode = 2
     nNodesPerElem = 2
@@ -73,19 +75,19 @@ def UniformBeam():
     IDOF_root = Nodes2DOF[Elem2Nodes[0,:][0] ,:]
     IDOF_tip  = Nodes2DOF[Elem2Nodes[-1,:][1],:]
 
-    # Insert tip/root inertias
-    if M_root is not None:
-        print('Not handled yet!')
-        M_glob[np.ix_(IDOF_root, IDOF_root)] += M_root
-    if M_tip is not None:
-        print('Not handled yet!')
-        M_glob[np.ix_(IDOF_tip, IDOF_tip)]   += M_tip
+    # # Insert tip/root inertias
+    # if M_root is not None:
+    #     print('Not handled yet!')
+    #     M_glob[np.ix_(IDOF_root, IDOF_root)] += M_root
+    # if M_tip is not None:
+    #     print('Not handled yet!')
+    #     M_glob[np.ix_(IDOF_tip, IDOF_tip)]   += M_tip
 
-    # Insert tip/root stiffness
-    if K_root is not None:
-        K_glob[np.ix_(IDOF_root, IDOF_root)] += K_root
-    if K_tip is not None:
-        K_glob[np.ix_(IDOF_tip, IDOF_tip)] += K_tip
+    # # Insert tip/root stiffness
+    # if K_root is not None:
+    #     K_glob[np.ix_(IDOF_root, IDOF_root)] += K_root
+    # if K_tip is not None:
+    #     K_glob[np.ix_(IDOF_tip, IDOF_tip)] += K_tip
 
     # Boundary condition transformation matrix (removes row/columns)
     Tr=np.eye(nDOF_tot)
@@ -97,33 +99,92 @@ def UniformBeam():
 
     Mr = (Tr.T).dot(M_glob).dot(Tr)
     Kr = (Tr.T).dot(K_glob).dot(Tr)
+    nDOF = Mr.shape[0]
+    
+    eigvecs_all, eigvals_all = Eigenproblem(nDOF, Mr, Kr)
+    
+    nModes = 10
+    eigvecs = np.zeros((nDOF,nModes))
+    eigfreqs = np.zeros(nModes)
+
+    z_nodes = np.zeros((nNode,nModes))
+    z_d_nodes = np.zeros((nNode,nModes))
+    z_dd_nodes = np.zeros((nNode,nModes))
+    z_elems = np.zeros((nElem,nModes))
+
+    for i in range(nModes):
+        eigvecs[:,i], eigfreqs[i] = EigSelect(i,eigvecs_all,eigvals_all)
+        z_nodes[:,i] = Modeshape(nNode, nElem, nDOFperNode, eigvecs[:,i])
+        lhs = SplineLHS(x_beamnode)
+        rhs1 = SplineRHS(x_beamnode, z_nodes[:,i])
+        z_d_nodes[:,i] = SolveSpline(lhs,rhs1)
+        rhs2 = SplineRHS(x_beamnode, z_d_nodes[:,i])
+        z_dd_nodes[:,i] = SolveSpline(lhs,rhs2)
+        z_elems[:, i] = ModeshapeElem(x_beamnode, z_nodes[:,i], z_d_nodes[:,i])
 
 
-
-    self.add_subsystem('modeshape_group',
-        modeshape_group,
-        promotes_inputs=['Z_beam', 'D_beam', 'L_beam', 'M_beam', 'tot_M_beam', 'wt_beam'],
-        promotes_outputs=['eig_vector_*', 'eig_freq_*', 'z_beamnode', 'z_beamelem',
-            'x_beamnode_*', 'x_d_beamnode_*', 
-            'x_beamelem_*', 'x_d_beamelem_*', 'x_dd_beamelem_*',
-            'M11', 'M12', 'M13', 'M22', 'M23', 'M33', 
-            'K11', 'K12', 'K13', 'K22', 'K23', 'K33',])
-
-    self.add_subsystem('global_mass',
-        GlobalMass(),
-        promotes_inputs=['M11', 'M12', 'M13', 'M22', 'M23', 'M33'],
-        promotes_outputs=['M_global'])
-
-    self.add_subsystem('global_stiffness',
-        GlobalStiffness(),
-        promotes_inputs=['K11', 'K12', 'K13', 'K22', 'K23', 'K33'],
-        promotes_outputs=['K_global'])
-
+    # --- Return a dictionary
+    FEM = {
+        'xNodes':x_beamnode,
+        'zNodes':z_nodes, 
+        'MM':Mr, 
+        'KK':Kr, 
+        'MM_full':M_glob, 
+        'KK_full':K_glob, 
+        'Tr':Tr,
+        # 'IFull2BC':IFull2BC, 
+        # 'IBC2Full':IBC2Full,
+        'Elem2Nodes':Elem2Nodes, 
+        'Nodes2DOF':Nodes2DOF, 
+        'Elem2DOF':Elem2DOF,
+        # 'Q':Q,
+        'freq':eigfreqs, 
+        # 'modeNames':modeNames,
+        }
     return FEM
 
-def plotFEM(FEM):
+    # self.add_subsystem('modeshape_group',
+    #     modeshape_group,
+    #     promotes_inputs=['Z_beam', 'D_beam', 'L_beam', 'M_beam', 'tot_M_beam', 'wt_beam'],
+    #     promotes_outputs=['eig_vector_*', 'eig_freq_*', 'z_beamnode', 'z_beamelem',
+    #         'x_beamnode_*', 'x_d_beamnode_*', 
+    #         'x_beamelem_*', 'x_d_beamelem_*', 'x_dd_beamelem_*',
+    #         'M11', 'M12', 'M13', 'M22', 'M23', 'M33', 
+    #         'K11', 'K12', 'K13', 'K22', 'K23', 'K33',])
 
-    return 1.
+    # self.add_subsystem('global_mass',
+    #     GlobalMass(),
+    #     promotes_inputs=['M11', 'M12', 'M13', 'M22', 'M23', 'M33'],
+    #     promotes_outputs=['M_global'])
+
+    # self.add_subsystem('global_stiffness',
+    #     GlobalStiffness(),
+    #     promotes_inputs=['K11', 'K12', 'K13', 'K22', 'K23', 'K33'],
+    #     promotes_outputs=['K_global'])
+
+    # return FEM
+
+def plotFEM(FEM):
+    x_beamnode = FEM['xNodes']
+    z_nodes = FEM['zNodes']
+    eigfreqs = FEM['freq']
+
+    ## --- Shapes PLOT from FEA
+    font = {'size': 16}
+    plt.rc('font', **font)
+    fig1, ax1 = plt.subplots(figsize=(12,8))
+
+    # Plot shapes
+    shape1 = ax1.plot(x_beamnode, z_nodes[:,0], label='1st Mode: %2.2f rad/s' %eigfreqs[0], c='r', ls='-', marker='.', ms=10, mfc='r', alpha=0.7)
+    shape2 = ax1.plot(x_beamnode, z_nodes[:,1], label='2nd Mode: %2.2f rad/s' %eigfreqs[1], c='g', ls='-', marker='.', ms=10, mfc='g', alpha=0.7)
+    shape3 = ax1.plot(x_beamnode, z_nodes[:,2], label='3rd Mode: %2.2f rad/s' %eigfreqs[2], c='b', ls='-', marker='.', ms=10, mfc='b', alpha=0.7)
+
+    # Set labels and legend
+    ax1.legend()
+    ax1.set_title('Modeshapes from FEA')
+    ax1.set_xlabel('Length (x)')
+    ax1.set_ylabel('Deformation (z)')
+    ax1.grid()
 
 def main():
     progName = "run_fea_test"
@@ -153,4 +214,5 @@ def main():
 if __name__ == '__main__':
     #sys.argv = ["programName.py","--input","test.txt","--output","tmp/test.txt"]
     main()
+    plt.show()
     
