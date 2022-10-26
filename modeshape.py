@@ -5,8 +5,10 @@ def Modeshape(nNode, nElem, nDOFperNode, eigvec):
     z_beamnode = np.zeros(nNode)
     rot_beamnode = np.zeros(nNode)
 
-    z_beamnode[1:] = eigvec[0:(nElem + 1) * nDOFperNode:nDOFperNode]
-    rot_beamnode[1:] = eigvec[1:(nElem + 2) * nDOFperNode:nDOFperNode]
+    z_beamnode = eigvec[0:(nElem + 1) * nDOFperNode:nDOFperNode]
+    rot_beamnode = eigvec[1:(nElem + 2) * nDOFperNode:nDOFperNode]
+    # z_beamnode[1:] = eigvec[0:(nElem + 1) * nDOFperNode:nDOFperNode]
+    # rot_beamnode[1:] = eigvec[1:(nElem + 2) * nDOFperNode:nDOFperNode]
 
     max_z_node_idx = np.argmax(np.abs(z_beamnode))
     max_z_node = z_beamnode[max_z_node_idx]

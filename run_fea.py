@@ -9,12 +9,14 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import os
 import numpy as np
+from scipy import linalg
 
 from beam_props import *
 from elem_props import *
 from global_props import *
 from eigenproblem import *
 from modeshape import * 
+from modal_analysis import *
 from utils import *
 
 MyDir=os.path.dirname(__file__)
@@ -30,8 +32,8 @@ def doArgs(argList, name):
 
 def UniformBeam():   
     # --- Parameters
-    nElem = 20 # Number of elements along the beam
-    nNode = nElem +1 # Number of nodes (one on each end of each element)
+    nElem = 50 # Number of elements along the beam
+    nNode = nElem + 1 # Number of nodes (one on each end of each element)
     nDOFperNode = 2
     nNodesPerElem = 2
     nDOF_tot = nNode * nDOFperNode
@@ -101,10 +103,12 @@ def UniformBeam():
     Kr = (Tr.T).dot(K_glob).dot(Tr)
     nDOF = Mr.shape[0]
     
-    eigvecs_all, eigvals_all = Eigenproblem(nDOF, Mr, Kr)
+    eigvecs_raw, eigvals_raw = Eigenproblem(nDOF, Mr, Kr)
+    eigvecs_all = Tr.dot(eigvecs_raw)
+    eigvals_all = np.real(eigvals_raw)
     
     nModes = 10
-    eigvecs = np.zeros((nDOF,nModes))
+    eigvecs = np.zeros((nDOF_tot,nModes))
     eigfreqs = np.zeros(nModes)
 
     z_nodes = np.zeros((nNode,nModes))
@@ -122,6 +126,10 @@ def UniformBeam():
         z_dd_nodes[:,i] = SolveSpline(lhs,rhs2)
         z_elems[:, i] = ModeshapeElem(x_beamnode, z_nodes[:,i], z_d_nodes[:,i])
 
+    M_modal = ModalMass(M_beam, z_nodes)
+    K_modal = ModalStiff(D_beam, wt_beam, L_beam, np.zeros(nElem), z_d_nodes, z_dd_nodes)
+
+    vals,vecs = scipy.linalg.eig(M_modal,K_modal)
 
     # --- Return a dictionary
     FEM = {
