@@ -1,7 +1,7 @@
 import numpy as np
 import scipy.linalg
 
-def Eigenproblem(nDOF, M_mode, K_mode):
+def Eigenproblem(M_mode, K_mode):
     """
     returns:
        Q     : matrix of column eigenvectors
@@ -44,7 +44,7 @@ def Eigenproblem(nDOF, M_mode, K_mode):
         print('[WARN] Found {:d} complex eigenvectors at positions {}/{}'.format(sum(bb),W,Q.shape[0]))
     Lambda = np.real(Lambda)
 
-    return Q,Lambda
+    return Q,Lambda,np.diag(lambdaDiag)
 
 # --------------------------------------------------------------------------------}
 # --- Mode tools 

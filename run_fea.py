@@ -118,11 +118,13 @@ def UniformBeam():
             IBC2Full[k]=i
             k+=1
     
-    Qr, eigfreqs = Eigenproblem(nDOF_r, Mr, Kr)
+    Qr, eigfreqs, spectr = Eigenproblem(Mr, Kr)
+    # Add fixed BC back into eigenvectors
     Q = Tr.dot(Qr)
     
     nModes = 10
-    x_nodes = np.zeros((nNode,nModes))
+    # Need to add original shape of x_nodes to get displacements
+    x_nodes = np.reshape(np.tile(x_beamnode,nModes),(nNode,nModes),order='F')
     y_nodes = np.zeros((nNode,nModes))
     z_nodes = np.zeros((nNode,nModes))
     z_d_nodes = np.zeros((nNode,nModes))
@@ -151,11 +153,11 @@ def UniformBeam():
     print('Mode 10 Nat. Period: %2.5f s, (%3.3f Hz)' %((1./eigfreqs[9]), (eigfreqs[9])))
 
 	## --- Check Frequencies
-    M_modal = ModalMass(M_beam, z_nodes)
-    K_modal = ModalStiff(D_beam, wt_beam, L_beam, np.zeros(nElem), z_d_nodes, z_dd_nodes)
+    M_modal = Q[:,:nModes].T @ M_glob @ Q[:,:nModes]
+    K_modal = Q[:,:nModes].T @ K_glob @ Q[:,:nModes]
 
-    eig_vals, eig_vecs = scipy.linalg.eig(M_modal, K_modal)
-    modal_freqs = np.sqrt(1./np.real(eig_vals))
+    eig_vals, eig_vecs = scipy.linalg.eig(K_modal, M_modal)
+    modal_freqs = np.sort(np.sqrt(np.real(eig_vals)) /(2*np.pi))
 	
     print('----- FROM MODAL MATRICES -----')
     print('Mode 1 Nat. Period: %2.5f s, (%3.3f Hz)' %((1./modal_freqs[0]), (modal_freqs[0])))
@@ -213,8 +215,7 @@ def UniformBeam():
     # return FEM
 
 def plotFEM(FEM):
-    x_nodes_0 = FEM['xNodes']
-    x_nodes = np.zeros_like(x_nodes_0) 
+    x_nodes = FEM['xNodes']
     y_nodes = FEM['yNodes']
     z_nodes = FEM['zNodes']
     nModes = FEM['nModes']
@@ -226,7 +227,6 @@ def plotFEM(FEM):
     fig1, axs = plt.subplot_mosaic([['ul', '.'], ['ll', 'lr']], figsize=(12, 10), layout="constrained", sharey=True)
 
     for i in range(nModes):
-        x_nodes[:,i] = x_nodes_0[:,i] + np.linspace(0,1,len(FEM['xNodes']))
         axs['ul'].plot(x_nodes[:,i], y_nodes[:,i], label='Mode %2d: %2.3f Hz' %((i+1, eigfreqs[i])), ls='-', marker='o', ms=3)
         axs['ll'].plot(x_nodes[:,i], z_nodes[:,i], label='Mode %2d: %2.3f Hz' %((i+1, eigfreqs[i])), ls='-', marker='o', ms=3)
         axs['lr'].plot(y_nodes[:,i], z_nodes[:,i], label='Mode %2d: %2.3f Hz' %((i+1, eigfreqs[i])), ls='-', marker='o', ms=3)
