@@ -41,7 +41,8 @@ def Eigenproblem(nDOF, M_mode, K_mode):
 def EigSelect(idx, eig_vectors, eig_vals):
     # He (2022) Eigenproblem definition
     eig_vec = eig_vectors[:, idx]
-    eig_freq = np.sqrt(1./np.diag(eig_vals)[idx]) / (2*np.pi) # Export in Hz
+    # eig_freq = np.sqrt(1./np.diag(eig_vals)[idx]) / (2*np.pi) # Export in Hz
+    eig_freq = np.sqrt(1./np.diag(eig_vals)[idx])
 
     return eig_vec, eig_freq
     

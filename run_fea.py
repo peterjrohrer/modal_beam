@@ -34,7 +34,7 @@ def UniformBeam():
     # --- Parameters
     nElem = 50 # Number of elements along the beam
     nNode = nElem + 1 # Number of nodes (one on each end of each element)
-    nDOFperNode = 2
+    nDOFperNode = 6
     nNodesPerElem = 2
     nDOF_tot = nNode * nDOFperNode
 
@@ -49,14 +49,14 @@ def UniformBeam():
     x_beamnode, x_beamelem, L_beam, M_beam, tot_M_beam = BeamProps(nNode=nNode, nElem=nElem, D_beam=D_beam, wt_beam=wt_beam, L_tot=L_tot)
 
     # Preallocate mel/kel and M_glob/K_glob matrices
-    mel = np.zeros((nElem, 4, 4))
-    kel = np.zeros((nElem, 4, 4))
+    mel = np.zeros((nElem, 12, 12))
+    kel = np.zeros((nElem, 12, 12))
     M_glob =  np.zeros((nDOF_tot,nDOF_tot))
     K_glob =  np.zeros((nDOF_tot,nDOF_tot))
 
     # --- Element calculations
     for i in range(nElem):
-        mel[i,:,:] = ElemMass(M_beam[i], L_beam[i])
+        mel[i,:,:] = ElemMass(M_beam[i], D_beam[i], wt_beam[i], L_beam[i])
         kel_mat = ElemMatStiff(D_beam[i], wt_beam[i], L_beam[i])
         kel_geom = ElemGeomStiff(P_elem=0, L_elem=L_beam[i])
         kel[i,:,:] = ElemStiff(kel_mat, kel_geom)
@@ -68,10 +68,10 @@ def UniformBeam():
         K_glob = BuildGlobalMatrix(K_glob, kel[i,:,:], DOFindex)
 
     # --- Handle BC and root/tip conditions
-    # BC_root = [0,0,0,0,0,0]
-    # BC_tip  = [1,1,1,1,1,1]
-    BC_root = [0,0]
-    BC_tip  = [1,1]
+    BC_root = [0,0,0,0,0,0]
+    BC_tip  = [1,1,1,1,1,1]
+    # BC_root = [0,0]
+    # BC_tip  = [1,1]
 
     # Tip and root degrees of freedom
     IDOF_root = Nodes2DOF[Elem2Nodes[0,:][0] ,:]
@@ -126,10 +126,26 @@ def UniformBeam():
         z_dd_nodes[:,i] = SolveSpline(lhs,rhs2)
         z_elems[:, i] = ModeshapeElem(x_beamnode, z_nodes[:,i], z_d_nodes[:,i])
 
+    print('----- FROM FINITE ELEMENT MODEL -----')
+    print('Mode 1 Nat. Period: %2.5f s, (%3.3f Hz)' %((1./eigfreqs[0]), (eigfreqs[0])))
+    print('Mode 2 Nat. Period: %2.5f s, (%3.3f Hz)' %((1./eigfreqs[1]), (eigfreqs[1])))
+    print('Mode 3 Nat. Period: %2.5f s, (%3.3f Hz)' %((1./eigfreqs[2]), (eigfreqs[2])))
+    print('Mode 4 Nat. Period: %2.5f s, (%3.3f Hz)' %((1./eigfreqs[3]), (eigfreqs[3])))
+    print('Mode 5 Nat. Period: %2.5f s, (%3.3f Hz)' %((1./eigfreqs[4]), (eigfreqs[4])))
+
+	## --- Check Frequencies
     M_modal = ModalMass(M_beam, z_nodes)
     K_modal = ModalStiff(D_beam, wt_beam, L_beam, np.zeros(nElem), z_d_nodes, z_dd_nodes)
 
-    vals,vecs = scipy.linalg.eig(M_modal,K_modal)
+    eig_vals, eig_vecs = scipy.linalg.eig(M_modal, K_modal)
+    modal_freqs = np.sqrt(1./np.real(eig_vals))
+	
+    print('----- FROM MODAL MATRICES -----')
+    print('Mode 1 Nat. Period: %2.5f s, (%3.3f Hz)' %((1./modal_freqs[0]), (modal_freqs[0])))
+    print('Mode 2 Nat. Period: %2.5f s, (%3.3f Hz)' %((1./modal_freqs[1]), (modal_freqs[1])))
+    print('Mode 3 Nat. Period: %2.5f s, (%3.3f Hz)' %((1./modal_freqs[2]), (modal_freqs[2])))
+    print('Mode 4 Nat. Period: %2.5f s, (%3.3f Hz)' %((1./modal_freqs[3]), (modal_freqs[3])))
+    print('Mode 5 Nat. Period: %2.5f s, (%3.3f Hz)' %((1./modal_freqs[4]), (modal_freqs[4])))
 
     # --- Return a dictionary
     FEM = {
@@ -223,4 +239,4 @@ if __name__ == '__main__':
     #sys.argv = ["programName.py","--input","test.txt","--output","tmp/test.txt"]
     main()
     plt.show()
-    
+    plt.savefig('modeshapes.png')
