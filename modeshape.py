@@ -5,18 +5,28 @@ def Modeshape(nNode, nElem, nDOFperNode, eigvec):
     z_beamnode = np.zeros(nNode)
     rot_beamnode = np.zeros(nNode)
 
-    z_beamnode = eigvec[0:(nElem + 1) * nDOFperNode:nDOFperNode]
-    rot_beamnode = eigvec[1:(nElem + 2) * nDOFperNode:nDOFperNode]
+    x_beamnode = eigvec[0:(nElem + 1) * nDOFperNode:nDOFperNode]
+    y_beamnode = eigvec[1:(nElem + 2) * nDOFperNode:nDOFperNode]
+    z_beamnode = eigvec[2:(nElem + 3) * nDOFperNode:nDOFperNode]
+    th_x_beamnode = eigvec[3:(nElem + 4) * nDOFperNode:nDOFperNode]
+    th_y_beamnode = eigvec[4:(nElem + 6) * nDOFperNode:nDOFperNode]
+    th_z_beamnode = eigvec[5:(nElem + 6) * nDOFperNode:nDOFperNode]
+
     # z_beamnode[1:] = eigvec[0:(nElem + 1) * nDOFperNode:nDOFperNode]
     # rot_beamnode[1:] = eigvec[1:(nElem + 2) * nDOFperNode:nDOFperNode]
 
-    max_z_node_idx = np.argmax(np.abs(z_beamnode))
-    max_z_node = z_beamnode[max_z_node_idx]
+    # For cantilever beam, scale on y nodes
+    max_y_node_idx = np.argmax(np.abs(y_beamnode))
+    max_y_node = y_beamnode[max_y_node_idx]
+    
+    if not max_y_node == 0:
+        x_beamnode = x_beamnode / max_y_node
+        y_beamnode = y_beamnode / max_y_node
+        z_beamnode = z_beamnode / max_y_node
 
-    z_beamnode = z_beamnode / max_z_node
     # print('Spar rot [deg]:', *np.round(rot_sparnode*(180/np.pi),5), sep=', ')
     # print('Beam rot [deg]:', *np.round(rot_beamnode*(180/np.pi),5), sep=', ')
-    return z_beamnode
+    return x_beamnode, y_beamnode, z_beamnode
 
 def SplineLHS(x_beamnode):
     nNode = len(x_beamnode)

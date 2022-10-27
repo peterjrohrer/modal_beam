@@ -38,9 +38,9 @@ def UniformBeam():
     nNodesPerElem = 2
     nDOF_tot = nNode * nDOFperNode
 
-    D_beam = 2.3 * np.ones(nElem) # m
-    wt_beam = 0.2 * np.ones(nElem) # m
-    L_tot = 25 # m
+    D_beam = 0.15 * np.ones(nElem) # m
+    wt_beam = 0.01 * np.ones(nElem) # m
+    L_tot = 1 # m
 
     # Map nodes/DOF
     Elem2Nodes, Nodes2DOF, Elem2DOF = LinearDOFMapping(nElem, nNodesPerElem, nDOFperNode)
@@ -70,26 +70,28 @@ def UniformBeam():
     # --- Handle BC and root/tip conditions
     BC_root = [0,0,0,0,0,0]
     BC_tip  = [1,1,1,1,1,1]
-    # BC_root = [0,0]
-    # BC_tip  = [1,1]
-
+    
+    IDOF_All = np.arange(0,nDOF_tot)
     # Tip and root degrees of freedom
     IDOF_root = Nodes2DOF[Elem2Nodes[0,:][0] ,:]
     IDOF_tip  = Nodes2DOF[Elem2Nodes[-1,:][1],:]
 
-    # # Insert tip/root inertias
-    # if M_root is not None:
-    #     print('Not handled yet!')
-    #     M_glob[np.ix_(IDOF_root, IDOF_root)] += M_root
-    # if M_tip is not None:
-    #     print('Not handled yet!')
-    #     M_glob[np.ix_(IDOF_tip, IDOF_tip)]   += M_tip
+    M_root = None
+    M_tip = None
+    K_root = None
+    K_tip = None
 
-    # # Insert tip/root stiffness
-    # if K_root is not None:
-    #     K_glob[np.ix_(IDOF_root, IDOF_root)] += K_root
-    # if K_tip is not None:
-    #     K_glob[np.ix_(IDOF_tip, IDOF_tip)] += K_tip
+    # Insert tip/root inertias
+    if M_root is not None:
+        M_glob[np.ix_(IDOF_root, IDOF_root)] += M_root
+    if M_tip is not None:
+        M_glob[np.ix_(IDOF_tip, IDOF_tip)]   += M_tip
+
+    # Insert tip/root stiffness
+    if K_root is not None:
+        K_glob[np.ix_(IDOF_root, IDOF_root)] += K_root
+    if K_tip is not None:
+        K_glob[np.ix_(IDOF_tip, IDOF_tip)] += K_tip
 
     # Boundary condition transformation matrix (removes row/columns)
     Tr=np.eye(nDOF_tot)
@@ -101,24 +103,34 @@ def UniformBeam():
 
     Mr = (Tr.T).dot(M_glob).dot(Tr)
     Kr = (Tr.T).dot(K_glob).dot(Tr)
-    nDOF = Mr.shape[0]
+
+    # --- Create mapping from M to Mr
+    nDOF_r = Mr.shape[0]
+    IDOF_BC = list(np.setdiff1d(IDOF_All, IDOF_removed))
+    IFull2BC = np.zeros(nDOF_tot,dtype=int)
+    IBC2Full = np.zeros(nDOF_r,dtype=int)
+    k=0
+    for i in IDOF_All:
+        if i in IDOF_removed:
+            IFull2BC[i]=-1
+        else:
+            IFull2BC[i]=k
+            IBC2Full[k]=i
+            k+=1
     
-    eigvecs_raw, eigvals_raw = Eigenproblem(nDOF, Mr, Kr)
-    eigvecs_all = Tr.dot(eigvecs_raw)
-    eigvals_all = np.real(eigvals_raw)
+    Qr, eigfreqs = Eigenproblem(nDOF_r, Mr, Kr)
+    Q = Tr.dot(Qr)
     
     nModes = 10
-    eigvecs = np.zeros((nDOF_tot,nModes))
-    eigfreqs = np.zeros(nModes)
-
+    x_nodes = np.zeros((nNode,nModes))
+    y_nodes = np.zeros((nNode,nModes))
     z_nodes = np.zeros((nNode,nModes))
     z_d_nodes = np.zeros((nNode,nModes))
     z_dd_nodes = np.zeros((nNode,nModes))
     z_elems = np.zeros((nElem,nModes))
 
     for i in range(nModes):
-        eigvecs[:,i], eigfreqs[i] = EigSelect(i,eigvecs_all,eigvals_all)
-        z_nodes[:,i] = Modeshape(nNode, nElem, nDOFperNode, eigvecs[:,i])
+        x_nodes[:,i], y_nodes[:,i], z_nodes[:,i] = Modeshape(nNode, nElem, nDOFperNode, Q[:,i])
         lhs = SplineLHS(x_beamnode)
         rhs1 = SplineRHS(x_beamnode, z_nodes[:,i])
         z_d_nodes[:,i] = SolveSpline(lhs,rhs1)
@@ -132,6 +144,11 @@ def UniformBeam():
     print('Mode 3 Nat. Period: %2.5f s, (%3.3f Hz)' %((1./eigfreqs[2]), (eigfreqs[2])))
     print('Mode 4 Nat. Period: %2.5f s, (%3.3f Hz)' %((1./eigfreqs[3]), (eigfreqs[3])))
     print('Mode 5 Nat. Period: %2.5f s, (%3.3f Hz)' %((1./eigfreqs[4]), (eigfreqs[4])))
+    print('Mode 6 Nat. Period: %2.5f s, (%3.3f Hz)' %((1./eigfreqs[5]), (eigfreqs[5])))
+    print('Mode 7 Nat. Period: %2.5f s, (%3.3f Hz)' %((1./eigfreqs[6]), (eigfreqs[6])))
+    print('Mode 8 Nat. Period: %2.5f s, (%3.3f Hz)' %((1./eigfreqs[7]), (eigfreqs[7])))
+    print('Mode 9 Nat. Period: %2.5f s, (%3.3f Hz)' %((1./eigfreqs[8]), (eigfreqs[8])))
+    print('Mode 10 Nat. Period: %2.5f s, (%3.3f Hz)' %((1./eigfreqs[9]), (eigfreqs[9])))
 
 	## --- Check Frequencies
     M_modal = ModalMass(M_beam, z_nodes)
@@ -146,10 +163,16 @@ def UniformBeam():
     print('Mode 3 Nat. Period: %2.5f s, (%3.3f Hz)' %((1./modal_freqs[2]), (modal_freqs[2])))
     print('Mode 4 Nat. Period: %2.5f s, (%3.3f Hz)' %((1./modal_freqs[3]), (modal_freqs[3])))
     print('Mode 5 Nat. Period: %2.5f s, (%3.3f Hz)' %((1./modal_freqs[4]), (modal_freqs[4])))
+    print('Mode 6 Nat. Period: %2.5f s, (%3.3f Hz)' %((1./modal_freqs[5]), (modal_freqs[5])))
+    print('Mode 7 Nat. Period: %2.5f s, (%3.3f Hz)' %((1./modal_freqs[6]), (modal_freqs[6])))
+    print('Mode 8 Nat. Period: %2.5f s, (%3.3f Hz)' %((1./modal_freqs[7]), (modal_freqs[7])))
+    print('Mode 9 Nat. Period: %2.5f s, (%3.3f Hz)' %((1./modal_freqs[8]), (modal_freqs[8])))
+    print('Mode 10 Nat. Period: %2.5f s, (%3.3f Hz)' %((1./modal_freqs[9]), (modal_freqs[9])))
 
     # --- Return a dictionary
     FEM = {
-        'xNodes':x_beamnode,
+        'xNodes':x_nodes,
+        'yNodes':y_nodes,
         'zNodes':z_nodes, 
         'MM':Mr, 
         'KK':Kr, 
@@ -163,6 +186,7 @@ def UniformBeam():
         'Elem2DOF':Elem2DOF,
         # 'Q':Q,
         'freq':eigfreqs, 
+        'nModes':nModes,
         # 'modeNames':modeNames,
         }
     return FEM
@@ -189,26 +213,41 @@ def UniformBeam():
     # return FEM
 
 def plotFEM(FEM):
-    x_beamnode = FEM['xNodes']
+    x_nodes_0 = FEM['xNodes']
+    x_nodes = np.zeros_like(x_nodes_0) 
+    y_nodes = FEM['yNodes']
     z_nodes = FEM['zNodes']
+    nModes = FEM['nModes']
     eigfreqs = FEM['freq']
 
-    ## --- Shapes PLOT from FEA
+    ## --- Shapes Plot from FEA
     font = {'size': 16}
     plt.rc('font', **font)
-    fig1, ax1 = plt.subplots(figsize=(12,8))
+    fig1, axs = plt.subplot_mosaic([['ul', '.'], ['ll', 'lr']], figsize=(12, 10), layout="constrained", sharey=True)
 
-    # Plot shapes
-    shape1 = ax1.plot(x_beamnode, z_nodes[:,0], label='1st Mode: %2.2f rad/s' %eigfreqs[0], c='r', ls='-', marker='.', ms=10, mfc='r', alpha=0.7)
-    shape2 = ax1.plot(x_beamnode, z_nodes[:,1], label='2nd Mode: %2.2f rad/s' %eigfreqs[1], c='g', ls='-', marker='.', ms=10, mfc='g', alpha=0.7)
-    shape3 = ax1.plot(x_beamnode, z_nodes[:,2], label='3rd Mode: %2.2f rad/s' %eigfreqs[2], c='b', ls='-', marker='.', ms=10, mfc='b', alpha=0.7)
+    for i in range(nModes):
+        x_nodes[:,i] = x_nodes_0[:,i] + np.linspace(0,1,len(FEM['xNodes']))
+        axs['ul'].plot(x_nodes[:,i], y_nodes[:,i], label='Mode %2d: %2.3f Hz' %((i+1, eigfreqs[i])), ls='-', marker='o', ms=3)
+        axs['ll'].plot(x_nodes[:,i], z_nodes[:,i], label='Mode %2d: %2.3f Hz' %((i+1, eigfreqs[i])), ls='-', marker='o', ms=3)
+        axs['lr'].plot(y_nodes[:,i], z_nodes[:,i], label='Mode %2d: %2.3f Hz' %((i+1, eigfreqs[i])), ls='-', marker='o', ms=3)
 
     # Set labels and legend
-    ax1.legend()
-    ax1.set_title('Modeshapes from FEA')
-    ax1.set_xlabel('Length (x)')
-    ax1.set_ylabel('Deformation (z)')
-    ax1.grid()
+    axs['ul'].grid()
+    axs['ul'].set_xlim(-0.1,2.1)
+    axs['ul'].set_ylabel('Y-displacement')
+    axs['ll'].grid()
+    axs['ll'].set_xlim(-0.1,2.1)
+    axs['ll'].set_xlabel('X-displacement')
+    axs['ll'].set_ylabel('Z-displacement')
+    # axs['ll'].set_ylim(-1,1.1)
+    axs['lr'].grid()
+    axs['lr'].set_xlim(-1.1,1.1)
+    axs['lr'].set_ylim(-1,1.1)
+    axs['lr'].set_xlabel('Y-displacement')
+
+    handles, labels = axs['lr'].get_legend_handles_labels()
+    fig1.legend(handles, labels, loc='upper right')
+    fig1.suptitle('Modeshapes from FEA')
 
 def main():
     progName = "run_fea_test"
