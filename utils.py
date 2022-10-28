@@ -4,23 +4,52 @@ Utility functions, adapted from WELIB by Emmanuel Branlard
 '''
 
 import numpy as np
+import numpy.ma as ma
 
-def LinearDOFMapping(nElem, nNodesPerElem, nDOFperNode):
+def LinearDOFMapping(nNodesPerElem, nDOFperNode, nElems, atNodes):
     """ 
     returns the mappings from nodes to DOF and element to nodes and DOF
     for a structure with the same type of elements, assuming nodes are one after the other
+
+    INPUTS:
+        nElems: (nBeams) vector of the number of elements in each beam
+        atNode: (nBeams - 1) vector of the attachment nodes for extra beams
+
     """
-    nNodes = (nNodesPerElem-1)*nElem+1 # total number of nodes in system
-    Nodes2DOF=np.zeros((nNodes,nDOFperNode), dtype=int)
-    for i in np.arange(nNodes):
+    nBeams = len(nElems)
+    nNodes = []
+    for i in range(nBeams): nNodes.append(nElems[i]+1)
+    
+    layout = []
+    layout.append([0 + i for i in range(nNodes[0])])
+    
+    for i in range(nBeams - 1):
+        # attach = np.arange(np.max(layout),np.max(layout)+11)
+        attach = [max(max(layout)) + i for i in range(nNodes[i+1])]
+        attach[0] = atNodes[i]
+        layout.append(attach)
+
+    allNodes = [item for sublist in layout for item in sublist]
+    nNodes_tot = len(set(allNodes)) # total number of nodes in system
+
+    Nodes2DOF=np.zeros((nNodes_tot,nDOFperNode), dtype=int)
+    Elem2DOF=np.zeros((sum(nElems),nDOFperNode*nNodesPerElem),dtype=int)
+    Elem2Nodes=np.zeros((sum(nElems),nNodesPerElem), dtype=int)
+
+    for i in range(nNodes_tot):
         Nodes2DOF[i,:]=np.arange(i*nDOFperNode, (i+1)*nDOFperNode) 
-    Elem2DOF=np.zeros((nElem,nDOFperNode*nNodesPerElem),dtype=int)
-    for i in np.arange(nElem):
-        Elem2DOF[i,:]=np.concatenate((Nodes2DOF[i,:], Nodes2DOF[i+1,:]))
-    Elem2Nodes=np.zeros((nElem,nNodesPerElem), dtype=int)
-    for i in np.arange(nElem):
-        Elem2Nodes[i,:]=(i,i+1)
-    return Elem2Nodes, Nodes2DOF, Elem2DOF
+    
+    idx = 0
+    for j in range(nBeams):
+        if j != 0: idx += nElems[j-1]
+
+        for i in range(nElems[j]):
+            Elem2DOF[idx+i,:]=np.concatenate((Nodes2DOF[layout[j][i],:], Nodes2DOF[layout[j][i+1],:]))
+        
+        for i in range(nElems[j]):
+            Elem2Nodes[idx+i,:]=(layout[j][i],layout[j][i+1])
+    
+    return Elem2Nodes, Nodes2DOF, Elem2DOF, layout, nNodes_tot
 
 def elementDCMfromBeamNodes(x_nodes, y_nodes, z_nodes, phi=None):
     """ Generate element Direction cosine matricse (DCM) 

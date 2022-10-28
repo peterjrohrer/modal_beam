@@ -32,35 +32,42 @@ def doArgs(argList, name):
 
 def UniformBeam():   
     # --- Parameters
-    nElem = 10 # Number of elements along the beam
-    nNode = nElem + 1 # Number of nodes (one on each end of each element)
+    nElems = [50,15,30] # Number of elements along the beam
+    nNodes = [31,11,11] # Number of nodes (one on each end of each element)
     nDOFperNode = 6
     nNodesPerElem = 2
 
-    D_beam = 0.25 * np.ones(nElem) # m
-    wt_beam = 0.01 * np.ones(nElem) # m
-    L_tot = 5. # m
-
+    D_beam = 0.25 # m
+    D_beam_0 = (D_beam*np.ones(nElems[0]))
+    D_beam_1 = (D_beam*np.ones(nElems[1]))
+    D_beam_2 = (D_beam*np.ones(nElems[2]))
+    wt_beam = 0.01 # m
+    wt_beam_0 = (wt_beam*np.ones(nElems[0]))
+    wt_beam_1 = (wt_beam*np.ones(nElems[1]))
+    wt_beam_2 = (wt_beam*np.ones(nElems[2]))
+    L_tot = [5.,1.,2.] # m
 
     # Read inputs to beam properties
-    x_beamnode_0, x_beamelem, L_beam, M_beam, tot_M_beam = BeamProps(nNode=nNode, nElem=nElem, D_beam=D_beam, wt_beam=wt_beam, L_tot=L_tot)
+    x_beamnode_0, _, L_beam_0, M_beam_0, _ = BeamProps(nNode=nNodes[0], nElem=nElems[0], D_beam=D_beam_0, wt_beam=wt_beam_0, L_tot=L_tot[0])
+    x_beamnode_1, _, L_beam_1, M_beam_1, _ = BeamProps(nNode=nNodes[1], nElem=nElems[1], D_beam=D_beam_1, wt_beam=wt_beam_1, L_tot=L_tot[1])
+    x_beamnode_2, _, L_beam_2, M_beam_2, _ = BeamProps(nNode=nNodes[2], nElem=nElems[2], D_beam=D_beam_2, wt_beam=wt_beam_2, L_tot=L_tot[2])
 
     # Add additional beam
-    z_beamnode = np.concatenate((np.zeros_like(x_beamnode_0),x_beamnode_0[1:]))
-    y_beamnode = np.zeros_like(z_beamnode)
-    x_beamnode = np.concatenate((x_beamnode_0, x_beamnode_0[-1] * np.ones_like(x_beamnode_0)[1:]))
+    x_beamnode = np.concatenate((x_beamnode_0, x_beamnode_0[12] * np.ones_like(x_beamnode_1)[1:], x_beamnode_0[7] * np.ones_like(x_beamnode_2)[1:]))
+    y_beamnode = np.zeros_like(x_beamnode)
+    z_beamnode = np.concatenate((np.zeros_like(x_beamnode_0),x_beamnode_1[1:],-1.*x_beamnode_2[1:]))
     
-    D_beam = np.repeat(D_beam,2)
-    wt_beam = np.repeat(wt_beam,2)
-    L_beam = np.repeat(L_beam,2)
-    M_beam = np.repeat(M_beam,2)
+    D_beam = np.concatenate((D_beam_0, D_beam_1, D_beam_2))
+    wt_beam = np.concatenate((wt_beam_0, wt_beam_1, wt_beam_2))
+    L_beam = np.concatenate((L_beam_0, L_beam_1, L_beam_2))
+    M_beam = np.concatenate((M_beam_0, M_beam_1, M_beam_2))
+    
+    nElem = sum(nElems)
 
-    nElem += len(x_beamnode_0) - 1
-    nNode += len(x_beamnode_0) - 1
-    nDOF_tot = nNode * nDOFperNode
-    
     # Map nodes/DOF
-    Elem2Nodes, Nodes2DOF, Elem2DOF = LinearDOFMapping(nElem, nNodesPerElem, nDOFperNode)
+    Elem2Nodes, Nodes2DOF, Elem2DOF, Layout, nNode = LinearDOFMapping(nNodesPerElem, nDOFperNode, nElems=nElems, atNodes=[10,35])
+
+    nDOF_tot = nNode * nDOFperNode
     
     # Find DCM
     DCM = elementDCMfromBeamNodes(x_beamnode,y_beamnode,z_beamnode)
@@ -73,9 +80,9 @@ def UniformBeam():
 
     # --- Element calculations
     for i in range(nElem):
-        mel[i,:,:] = ElemMass(M_beam[i], D_beam[i], wt_beam[i], L_beam[i])
-        kel_mat = ElemMatStiff(D_beam[i], wt_beam[i], L_beam[i])
-        kel_geom = ElemGeomStiff(P_elem=0, L_elem=L_beam[i])
+        mel[i,:,:] = ElemMass(M_beam[i], D_beam[i], wt_beam[i], L_beam[i], R=DCM[i,:,:])
+        kel_mat = ElemMatStiff(D_beam[i], wt_beam[i], L_beam[i], R=DCM[i,:,:])
+        kel_geom = ElemGeomStiff(P_elem=0, L_elem=L_beam[i], R=DCM[i,:,:])
         kel[i,:,:] = ElemStiff(kel_mat, kel_geom)
     
     # --- Assembly    
@@ -86,18 +93,17 @@ def UniformBeam():
 
     IDOF_All = np.arange(0,nDOF_tot)
     # Tip and root degrees of freedom
-    IDOF_root = Nodes2DOF[Elem2Nodes[0,:][0] ,:]
-    IDOF_tip  = Nodes2DOF[Elem2Nodes[-1,:][1],:]
+    IDOF_root = Nodes2DOF[Layout[0][0]]
+    IDOF_tip  = Nodes2DOF[Layout[0][-1]]
     
-    # --- Add dogleg at end
-
 
     # --- Handle BC and root/tip conditions
     BC_root = [0,0,0,0,0,0]
+    # BC_root  = [1,1,1,1,1,1]
     BC_tip  = [1,1,1,1,1,1]
     
     M_root = None
-    M_tip = PointMassMatrix(m=10000.,Ref2COG=(0,0.2,0))
+    M_tip = PointMassMatrix(m=100000.,Ref2COG=(0,0.2,0))
     K_root = None
     K_tip = None
 
@@ -142,7 +148,7 @@ def UniformBeam():
     # Add fixed BC back into eigenvectors
     Q = Tr.dot(Qr)
     
-    nModes = 10
+    nModes = 5
     # Need to add original shape of x_nodes to get displacements
     x_nodes = np.reshape(np.tile(x_beamnode,nModes),(nNode,nModes),order='F')
     y_nodes = np.reshape(np.tile(y_beamnode,nModes),(nNode,nModes),order='F')
@@ -154,8 +160,10 @@ def UniformBeam():
     z_elems = np.zeros((nElem,nModes))
 
     for i in range(nModes):
-        x_nodes_0, y_nodes[:,i], z_nodes[:,i] = Modeshape(nNode, nElem, nDOFperNode, Q[:,i])
+        x_nodes_0, y_nodes_0, z_nodes_0 = Modeshape(nNode, nElem, nDOFperNode, Q[:,i])
         x_nodes[:,i] += x_nodes_0
+        y_nodes[:,i] += y_nodes_0
+        z_nodes[:,i] += z_nodes_0
         # lhs = SplineLHS(x_beamnode)
         # rhs1 = SplineRHS(x_beamnode, z_nodes[:,i])
         # z_d_nodes[:,i] = SolveSpline(lhs,rhs1)
@@ -169,11 +177,11 @@ def UniformBeam():
     print('Mode 3 Nat. Freq: %3.3f Hz' %(eigfreqs[2]))
     print('Mode 4 Nat. Freq: %3.3f Hz' %(eigfreqs[3]))
     print('Mode 5 Nat. Freq: %3.3f Hz' %(eigfreqs[4]))
-    print('Mode 6 Nat. Freq: %3.3f Hz' %(eigfreqs[5]))
-    print('Mode 7 Nat. Freq: %3.3f Hz' %(eigfreqs[6]))
-    print('Mode 8 Nat. Freq: %3.3f Hz' %(eigfreqs[7]))
-    print('Mode 9 Nat. Freq: %3.3f Hz' %(eigfreqs[8]))
-    print('Mode 10 Nat. Freq: %3.3f Hz' %(eigfreqs[9]))
+    # print('Mode 6 Nat. Freq: %3.3f Hz' %(eigfreqs[5]))
+    # print('Mode 7 Nat. Freq: %3.3f Hz' %(eigfreqs[6]))
+    # print('Mode 8 Nat. Freq: %3.3f Hz' %(eigfreqs[7]))
+    # print('Mode 9 Nat. Freq: %3.3f Hz' %(eigfreqs[8]))
+    # print('Mode 10 Nat. Freq: %3.3f Hz' %(eigfreqs[9]))
 
 	## --- Check Frequencies
     M_modal = Q[:,:nModes].T @ M_glob @ Q[:,:nModes]
@@ -188,11 +196,11 @@ def UniformBeam():
     print('Mode 3 Nat. Freq: %3.3f Hz' %(modal_freqs[2]))
     print('Mode 4 Nat. Freq: %3.3f Hz' %(modal_freqs[3]))
     print('Mode 5 Nat. Freq: %3.3f Hz' %(modal_freqs[4]))
-    print('Mode 6 Nat. Freq: %3.3f Hz' %(modal_freqs[5]))
-    print('Mode 7 Nat. Freq: %3.3f Hz' %(modal_freqs[6]))
-    print('Mode 8 Nat. Freq: %3.3f Hz' %(modal_freqs[7]))
-    print('Mode 9 Nat. Freq: %3.3f Hz' %(modal_freqs[8]))
-    print('Mode 10 Nat. Freq: %3.3f Hz' %(modal_freqs[9]))
+    # print('Mode 6 Nat. Freq: %3.3f Hz' %(modal_freqs[5]))
+    # print('Mode 7 Nat. Freq: %3.3f Hz' %(modal_freqs[6]))
+    # print('Mode 8 Nat. Freq: %3.3f Hz' %(modal_freqs[7]))
+    # print('Mode 9 Nat. Freq: %3.3f Hz' %(modal_freqs[8]))
+    # print('Mode 10 Nat. Freq: %3.3f Hz' %(modal_freqs[9]))
 
     # --- Return a dictionary
     FEM = {
@@ -250,9 +258,9 @@ def plotFEM(FEM):
     fig1, axs = plt.subplot_mosaic([['ul', '.'], ['ll', 'lr']], figsize=(12, 10), layout="constrained", sharey=True)
 
     for i in range(nModes):
-        axs['ul'].plot(x_nodes[:,i], y_nodes[:,i], label='Mode %2d: %2.3f Hz' %((i+1, eigfreqs[i])), ls='-', marker='o', ms=3)
-        axs['ll'].plot(x_nodes[:,i], z_nodes[:,i], label='Mode %2d: %2.3f Hz' %((i+1, eigfreqs[i])), ls='-', marker='o', ms=3)
-        axs['lr'].plot(y_nodes[:,i], z_nodes[:,i], label='Mode %2d: %2.3f Hz' %((i+1, eigfreqs[i])), ls='-', marker='o', ms=3)
+        axs['ul'].plot(x_nodes[:,i], y_nodes[:,i], label='Mode %2d: %2.3f Hz' %((i+1, eigfreqs[i])), ls='None', marker='o', ms=5)
+        axs['ll'].plot(x_nodes[:,i], z_nodes[:,i], label='Mode %2d: %2.3f Hz' %((i+1, eigfreqs[i])), ls='None', marker='o', ms=5)
+        axs['lr'].plot(y_nodes[:,i], z_nodes[:,i], label='Mode %2d: %2.3f Hz' %((i+1, eigfreqs[i])), ls='None', marker='o', ms=5)
 
     # Set labels and legend
     axs['ul'].grid()

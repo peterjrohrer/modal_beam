@@ -3,7 +3,7 @@ import myconstants as myconst
 import scipy.linalg
 
 
-def ElemMass(M_elem, D_elem, wt_elem, L_elem):
+def ElemMass(M_elem, D_elem, wt_elem, L_elem, R=None):
     """
     Calculates local-axis mass matrix of element from inputs
 
@@ -12,6 +12,8 @@ def ElemMass(M_elem, D_elem, wt_elem, L_elem):
         D_elem: (float) outer diameter of element 
         wt_elem: (float) wall thickness of element 
         L_elem: (float) length of element 
+        R: Transformation matrix (3x3) from global coord to element coord: x_e = R.x_g
+                if provided, element matrix is provided in global coord
 
     OUTPUTS:
         mel: (12x12) local element mass matrix
@@ -42,13 +44,15 @@ def ElemMass(M_elem, D_elem, wt_elem, L_elem):
     
     mel = mel * M_elem * a / 105.
 
-    R = np.eye(3)
-    RR = scipy.linalg.block_diag(R,R,R,R)
-    Me = np.transpose(RR).dot(mel).dot(RR)
-
-    return mel
+    ## Element in global coord
+    if (R is not None):
+        RR = scipy.linalg.block_diag(R,R,R,R)
+        Me = np.transpose(RR).dot(mel).dot(RR)
+        return Me
+    else:
+        return mel
               
-def ElemMatStiff(D_elem, wt_elem, L_elem):
+def ElemMatStiff(D_elem, wt_elem, L_elem, R=None):
     """
     Calculates local-axis material stiffness matrix of element from inputs
 
@@ -56,6 +60,8 @@ def ElemMatStiff(D_elem, wt_elem, L_elem):
         D_elem: (float) outer diameter of element 
         wt_elem: (float) wall thickness of element 
         L_elem: (float) length of element 
+        R: Transformation matrix (3x3) from global coord to element coord: x_e = R.x_g
+                if provided, element matrix is provided in global coord
 
     OUTPUTS:
         kel_mat: (12x12) local element material stiffness matrix
@@ -95,16 +101,24 @@ def ElemMatStiff(D_elem, wt_elem, L_elem):
     kel_mat[9,3] = kel_mat[3,9] = -1. * f
     kel_mat[10,4] = kel_mat[4,10] = g
     kel_mat[11,5] = kel_mat[5,11] = h
-            
-    return kel_mat
+    
+    ## Element in global coord
+    if (R is not None):
+        RR = scipy.linalg.block_diag(R,R,R,R)
+        Kme = np.transpose(RR).dot(kel_mat).dot(RR)
+        return Kme
+    else:
+        return kel_mat
 
-def ElemGeomStiff(P_elem, L_elem):
+def ElemGeomStiff(P_elem, L_elem, R=None):
     """
     Calculates local-axis geometrical stiffness matrix of element from inputs
 
     INPUTS:
         P_elem: (float) axial load on element 
-        L_elem: (float) length of element 
+        L_elem: (float) length of element
+        R: Transformation matrix (3x3) from global coord to element coord: x_e = R.x_g
+                if provided, element matrix is provided in global coord 
 
     OUTPUTS:
         kel_geom: (12x12) local element geometrical stiffness matrix
@@ -125,7 +139,13 @@ def ElemGeomStiff(P_elem, L_elem):
 
     kel_geom = kel_geom * P_elem
             
-    return kel_geom
+    ## Element in global coord
+    if (R is not None):
+        RR = scipy.linalg.block_diag(R,R,R,R)
+        Kge = np.transpose(RR).dot(kel_geom).dot(RR)
+        return Kge
+    else:
+        return kel_geom
 
 def ElemStiff(kel_mat, kel_geom):
     """
