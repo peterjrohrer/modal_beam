@@ -1,5 +1,6 @@
 import numpy as np
 import myconstants as myconst
+import scipy.linalg
 
 
 def ElemMass(M_elem, D_elem, wt_elem, L_elem):
@@ -40,6 +41,10 @@ def ElemMass(M_elem, D_elem, wt_elem, L_elem):
     mel[4, 10] = mel[10, 4] = mel[5, 11] = mel[11, 5] = -6. * a2
     
     mel = mel * M_elem * a / 105.
+
+    R = np.eye(3)
+    RR = scipy.linalg.block_diag(R,R,R,R)
+    Me = np.transpose(RR).dot(mel).dot(RR)
 
     return mel
               

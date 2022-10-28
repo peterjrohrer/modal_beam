@@ -32,21 +32,38 @@ def doArgs(argList, name):
 
 def UniformBeam():   
     # --- Parameters
-    nElem = 50 # Number of elements along the beam
+    nElem = 10 # Number of elements along the beam
     nNode = nElem + 1 # Number of nodes (one on each end of each element)
     nDOFperNode = 6
     nNodesPerElem = 2
-    nDOF_tot = nNode * nDOFperNode
 
-    D_beam = 0.15 * np.ones(nElem) # m
+    D_beam = 0.25 * np.ones(nElem) # m
     wt_beam = 0.01 * np.ones(nElem) # m
-    L_tot = 1 # m
+    L_tot = 5. # m
 
-    # Map nodes/DOF
-    Elem2Nodes, Nodes2DOF, Elem2DOF = LinearDOFMapping(nElem, nNodesPerElem, nDOFperNode)
 
     # Read inputs to beam properties
-    x_beamnode, x_beamelem, L_beam, M_beam, tot_M_beam = BeamProps(nNode=nNode, nElem=nElem, D_beam=D_beam, wt_beam=wt_beam, L_tot=L_tot)
+    x_beamnode_0, x_beamelem, L_beam, M_beam, tot_M_beam = BeamProps(nNode=nNode, nElem=nElem, D_beam=D_beam, wt_beam=wt_beam, L_tot=L_tot)
+
+    # Add additional beam
+    z_beamnode = np.concatenate((np.zeros_like(x_beamnode_0),x_beamnode_0[1:]))
+    y_beamnode = np.zeros_like(z_beamnode)
+    x_beamnode = np.concatenate((x_beamnode_0, x_beamnode_0[-1] * np.ones_like(x_beamnode_0)[1:]))
+    
+    D_beam = np.repeat(D_beam,2)
+    wt_beam = np.repeat(wt_beam,2)
+    L_beam = np.repeat(L_beam,2)
+    M_beam = np.repeat(M_beam,2)
+
+    nElem += len(x_beamnode_0) - 1
+    nNode += len(x_beamnode_0) - 1
+    nDOF_tot = nNode * nDOFperNode
+    
+    # Map nodes/DOF
+    Elem2Nodes, Nodes2DOF, Elem2DOF = LinearDOFMapping(nElem, nNodesPerElem, nDOFperNode)
+    
+    # Find DCM
+    DCM = elementDCMfromBeamNodes(x_beamnode,y_beamnode,z_beamnode)
 
     # Preallocate mel/kel and M_glob/K_glob matrices
     mel = np.zeros((nElem, 12, 12))
@@ -67,17 +84,20 @@ def UniformBeam():
         M_glob = BuildGlobalMatrix(M_glob, mel[i,:,:], DOFindex)
         K_glob = BuildGlobalMatrix(K_glob, kel[i,:,:], DOFindex)
 
-    # --- Handle BC and root/tip conditions
-    BC_root = [0,0,0,0,0,0]
-    BC_tip  = [1,1,1,1,1,1]
-    
     IDOF_All = np.arange(0,nDOF_tot)
     # Tip and root degrees of freedom
     IDOF_root = Nodes2DOF[Elem2Nodes[0,:][0] ,:]
     IDOF_tip  = Nodes2DOF[Elem2Nodes[-1,:][1],:]
+    
+    # --- Add dogleg at end
 
+
+    # --- Handle BC and root/tip conditions
+    BC_root = [0,0,0,0,0,0]
+    BC_tip  = [1,1,1,1,1,1]
+    
     M_root = None
-    M_tip = None
+    M_tip = PointMassMatrix(m=10000.,Ref2COG=(0,0.2,0))
     K_root = None
     K_tip = None
 
@@ -125,32 +145,35 @@ def UniformBeam():
     nModes = 10
     # Need to add original shape of x_nodes to get displacements
     x_nodes = np.reshape(np.tile(x_beamnode,nModes),(nNode,nModes),order='F')
-    y_nodes = np.zeros((nNode,nModes))
-    z_nodes = np.zeros((nNode,nModes))
+    y_nodes = np.reshape(np.tile(y_beamnode,nModes),(nNode,nModes),order='F')
+    z_nodes = np.reshape(np.tile(z_beamnode,nModes),(nNode,nModes),order='F')
+    # y_nodes = np.zeros((nNode,nModes))
+    # z_nodes = np.zeros((nNode,nModes))
     z_d_nodes = np.zeros((nNode,nModes))
     z_dd_nodes = np.zeros((nNode,nModes))
     z_elems = np.zeros((nElem,nModes))
 
     for i in range(nModes):
-        x_nodes[:,i], y_nodes[:,i], z_nodes[:,i] = Modeshape(nNode, nElem, nDOFperNode, Q[:,i])
-        lhs = SplineLHS(x_beamnode)
-        rhs1 = SplineRHS(x_beamnode, z_nodes[:,i])
-        z_d_nodes[:,i] = SolveSpline(lhs,rhs1)
-        rhs2 = SplineRHS(x_beamnode, z_d_nodes[:,i])
-        z_dd_nodes[:,i] = SolveSpline(lhs,rhs2)
-        z_elems[:, i] = ModeshapeElem(x_beamnode, z_nodes[:,i], z_d_nodes[:,i])
+        x_nodes_0, y_nodes[:,i], z_nodes[:,i] = Modeshape(nNode, nElem, nDOFperNode, Q[:,i])
+        x_nodes[:,i] += x_nodes_0
+        # lhs = SplineLHS(x_beamnode)
+        # rhs1 = SplineRHS(x_beamnode, z_nodes[:,i])
+        # z_d_nodes[:,i] = SolveSpline(lhs,rhs1)
+        # rhs2 = SplineRHS(x_beamnode, z_d_nodes[:,i])
+        # z_dd_nodes[:,i] = SolveSpline(lhs,rhs2)
+        # z_elems[:, i] = ModeshapeElem(x_beamnode, z_nodes[:,i], z_d_nodes[:,i])
 
     print('----- FROM FINITE ELEMENT MODEL -----')
-    print('Mode 1 Nat. Period: %2.5f s, (%3.3f Hz)' %((1./eigfreqs[0]), (eigfreqs[0])))
-    print('Mode 2 Nat. Period: %2.5f s, (%3.3f Hz)' %((1./eigfreqs[1]), (eigfreqs[1])))
-    print('Mode 3 Nat. Period: %2.5f s, (%3.3f Hz)' %((1./eigfreqs[2]), (eigfreqs[2])))
-    print('Mode 4 Nat. Period: %2.5f s, (%3.3f Hz)' %((1./eigfreqs[3]), (eigfreqs[3])))
-    print('Mode 5 Nat. Period: %2.5f s, (%3.3f Hz)' %((1./eigfreqs[4]), (eigfreqs[4])))
-    print('Mode 6 Nat. Period: %2.5f s, (%3.3f Hz)' %((1./eigfreqs[5]), (eigfreqs[5])))
-    print('Mode 7 Nat. Period: %2.5f s, (%3.3f Hz)' %((1./eigfreqs[6]), (eigfreqs[6])))
-    print('Mode 8 Nat. Period: %2.5f s, (%3.3f Hz)' %((1./eigfreqs[7]), (eigfreqs[7])))
-    print('Mode 9 Nat. Period: %2.5f s, (%3.3f Hz)' %((1./eigfreqs[8]), (eigfreqs[8])))
-    print('Mode 10 Nat. Period: %2.5f s, (%3.3f Hz)' %((1./eigfreqs[9]), (eigfreqs[9])))
+    print('Mode 1 Nat. Freq: %3.3f Hz' %(eigfreqs[0]))
+    print('Mode 2 Nat. Freq: %3.3f Hz' %(eigfreqs[1]))
+    print('Mode 3 Nat. Freq: %3.3f Hz' %(eigfreqs[2]))
+    print('Mode 4 Nat. Freq: %3.3f Hz' %(eigfreqs[3]))
+    print('Mode 5 Nat. Freq: %3.3f Hz' %(eigfreqs[4]))
+    print('Mode 6 Nat. Freq: %3.3f Hz' %(eigfreqs[5]))
+    print('Mode 7 Nat. Freq: %3.3f Hz' %(eigfreqs[6]))
+    print('Mode 8 Nat. Freq: %3.3f Hz' %(eigfreqs[7]))
+    print('Mode 9 Nat. Freq: %3.3f Hz' %(eigfreqs[8]))
+    print('Mode 10 Nat. Freq: %3.3f Hz' %(eigfreqs[9]))
 
 	## --- Check Frequencies
     M_modal = Q[:,:nModes].T @ M_glob @ Q[:,:nModes]
@@ -160,16 +183,16 @@ def UniformBeam():
     modal_freqs = np.sort(np.sqrt(np.real(eig_vals)) /(2*np.pi))
 	
     print('----- FROM MODAL MATRICES -----')
-    print('Mode 1 Nat. Period: %2.5f s, (%3.3f Hz)' %((1./modal_freqs[0]), (modal_freqs[0])))
-    print('Mode 2 Nat. Period: %2.5f s, (%3.3f Hz)' %((1./modal_freqs[1]), (modal_freqs[1])))
-    print('Mode 3 Nat. Period: %2.5f s, (%3.3f Hz)' %((1./modal_freqs[2]), (modal_freqs[2])))
-    print('Mode 4 Nat. Period: %2.5f s, (%3.3f Hz)' %((1./modal_freqs[3]), (modal_freqs[3])))
-    print('Mode 5 Nat. Period: %2.5f s, (%3.3f Hz)' %((1./modal_freqs[4]), (modal_freqs[4])))
-    print('Mode 6 Nat. Period: %2.5f s, (%3.3f Hz)' %((1./modal_freqs[5]), (modal_freqs[5])))
-    print('Mode 7 Nat. Period: %2.5f s, (%3.3f Hz)' %((1./modal_freqs[6]), (modal_freqs[6])))
-    print('Mode 8 Nat. Period: %2.5f s, (%3.3f Hz)' %((1./modal_freqs[7]), (modal_freqs[7])))
-    print('Mode 9 Nat. Period: %2.5f s, (%3.3f Hz)' %((1./modal_freqs[8]), (modal_freqs[8])))
-    print('Mode 10 Nat. Period: %2.5f s, (%3.3f Hz)' %((1./modal_freqs[9]), (modal_freqs[9])))
+    print('Mode 1 Nat. Freq: %3.3f Hz' %(modal_freqs[0]))
+    print('Mode 2 Nat. Freq: %3.3f Hz' %(modal_freqs[1]))
+    print('Mode 3 Nat. Freq: %3.3f Hz' %(modal_freqs[2]))
+    print('Mode 4 Nat. Freq: %3.3f Hz' %(modal_freqs[3]))
+    print('Mode 5 Nat. Freq: %3.3f Hz' %(modal_freqs[4]))
+    print('Mode 6 Nat. Freq: %3.3f Hz' %(modal_freqs[5]))
+    print('Mode 7 Nat. Freq: %3.3f Hz' %(modal_freqs[6]))
+    print('Mode 8 Nat. Freq: %3.3f Hz' %(modal_freqs[7]))
+    print('Mode 9 Nat. Freq: %3.3f Hz' %(modal_freqs[8]))
+    print('Mode 10 Nat. Freq: %3.3f Hz' %(modal_freqs[9]))
 
     # --- Return a dictionary
     FEM = {
@@ -233,10 +256,10 @@ def plotFEM(FEM):
 
     # Set labels and legend
     axs['ul'].grid()
-    axs['ul'].set_xlim(-0.1,2.1)
+    axs['ul'].set_xlim(-0.1,5.1)
     axs['ul'].set_ylabel('Y-displacement')
     axs['ll'].grid()
-    axs['ll'].set_xlim(-0.1,2.1)
+    axs['ll'].set_xlim(-0.1,5.1)
     axs['ll'].set_xlabel('X-displacement')
     axs['ll'].set_ylabel('Z-displacement')
     # axs['ll'].set_ylim(-1,1.1)
