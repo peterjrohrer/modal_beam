@@ -40,32 +40,51 @@ def UniformBeam():
 
     D_col = 12. # m
     D_beam_0 = (D_col*np.ones(nElems[0]+nElems[1]))
-    D_beam_1 = np.linspace(8.,5.,nElems[2])
-    D_pont = 6.
+    D_beam_1 = np.linspace(8.3,5.5,nElems[2])
+    D_pont = 8.
     D_beam_2 = (D_pont*np.ones(nElems[3]+nElems[4]+nElems[5]))
 
-    wt_col = 0.5 # m
+    wt_col = 0.04 # m
     wt_beam_0 = (wt_col*np.ones(nElems[0]+nElems[1]))
-    wt_beam_1 = np.linspace(0.4,0.2,nElems[2])
-    wt_pont = 0.15
+    wt_beam_1 = np.linspace(0.038,0.02,nElems[2])
+    wt_pont = 0.04
     wt_beam_2 = (wt_pont*np.ones(nElems[3]+nElems[4]+nElems[5]))
 
-    L_col = 30./nElems[0] # m
+    draft = 30.
+    L_col = draft/nElems[0] # m
     L_beam_0a = (L_col*np.ones(nElems[0]))
     L_trans = 10./nElems[1] # m
     L_beam_0b = (L_trans*np.ones(nElems[1]))
     L_tower = 105./nElems[2]
     L_beam_1 = (L_tower*np.ones(nElems[2]))
-    L_pont = 25./nElems[3] # m
+    pont_rad = 34.
+    L_pont = pont_rad/nElems[3] # m
     L_beam_2 = (L_pont*np.ones(nElems[3]+nElems[4]+nElems[5]))
 
     D_beam = np.concatenate((D_beam_0, D_beam_1, D_beam_2))
     wt_beam = np.concatenate((wt_beam_0, wt_beam_1, wt_beam_2))
     L_beam = np.concatenate((L_beam_0a, L_beam_0b, L_beam_1, L_beam_2))
-    M_beam = (np.pi/4.) * (D_beam**2. - (D_beam - (2.*wt_beam))**2.) * myconst.RHO_STL 
+    A_beam = (np.pi/4.) * (D_beam**2. - (D_beam - (2.*wt_beam))**2.)
+    M_beam = A_beam * L_beam * myconst.RHO_STL 
+    M_rna = 674000.
+
+    # Axial force calculation
+    M_tot = sum(M_beam) + M_rna
+    idx = sum(nElems[:3])
+    M_pont_tot = sum(M_beam[idx:])
+    P_beam = np.zeros_like(M_beam)
+    M_above = M_tot - M_pont_tot - np.cumsum(M_beam[:idx])
+    P_beam[:idx] += (M_above * myconst.G)
+
+    # Volume calculation
+    vol_pont = (np.pi/4.) * D_pont**2. * (sum(L_beam_2) - (3/2)*D_col)
+    vol_col = (np.pi/4.) * D_col**2. * sum(L_beam_0a)
+    buoy = (vol_col + vol_pont) * myconst.RHO_SW * myconst.G
+    weight = M_tot * myconst.G
+    pretension = (buoy - weight) / 3. # N
 
     # --- Node Locations
-    z_beamnode_0 = np.linspace(-30.,0.,nNodes[0])
+    z_beamnode_0 = np.linspace(-1.*draft,0.,nNodes[0])
     y_beamnode_0 = np.zeros_like(z_beamnode_0)
     x_beamnode_0 = np.zeros_like(z_beamnode_0)
 
@@ -79,20 +98,20 @@ def UniformBeam():
     y_beamnode_2 = np.zeros_like(z_beamnode_2)
     x_beamnode_2 = np.zeros_like(z_beamnode_2)
 
-    x_beamnode_3 = np.linspace(0.,25.,nNodes[3])
+    x_beamnode_3 = np.linspace(0.,pont_rad,nNodes[3])
     x_beamnode_3 = np.delete(x_beamnode_3,0)
     y_beamnode_3 = np.zeros_like(x_beamnode_3)
     z_beamnode_3 = -30. * np.ones_like(x_beamnode_3)
 
-    x_beamnode_4 = np.linspace(0.,-21.6506,nNodes[4])
+    x_beamnode_4 = np.linspace(0.,-1.*pont_rad*np.sin(np.pi/3.),nNodes[4])
     x_beamnode_4 = np.delete(x_beamnode_4,0)
-    y_beamnode_4 = np.linspace(0.,12.5,nNodes[4])
+    y_beamnode_4 = np.linspace(0.,pont_rad*np.cos(np.pi/3.),nNodes[4])
     y_beamnode_4 = np.delete(y_beamnode_4,0)
     z_beamnode_4 = -30. * np.ones_like(x_beamnode_4)
 
-    x_beamnode_5 = np.linspace(0.,-21.6506,nNodes[5])
+    x_beamnode_5 = np.linspace(0.,-1.*pont_rad*np.sin(np.pi/3.),nNodes[5])
     x_beamnode_5 = np.delete(x_beamnode_5,0)
-    y_beamnode_5 = np.linspace(0.,-12.5,nNodes[5])
+    y_beamnode_5 = np.linspace(0.,-1.*pont_rad*np.cos(np.pi/3.),nNodes[5])
     y_beamnode_5 = np.delete(y_beamnode_5,0)
     z_beamnode_5 = -30. * np.ones_like(x_beamnode_5)
 
@@ -133,37 +152,41 @@ def UniformBeam():
     IDOF_All = np.arange(0,nDOF_tot)
     # Tip and root degrees of freedom
     IDOF_root = Nodes2DOF[Layout[0][0]]
-    IDOF_tip  = Nodes2DOF[Layout[2][-1]]
+    IDOF_rna  = Nodes2DOF[Layout[2][-1]]
+    IDOF_tend1  = Nodes2DOF[Layout[3][-1]]
+    IDOF_tend2  = Nodes2DOF[Layout[4][-1]]
+    IDOF_tend3  = Nodes2DOF[Layout[5][-1]]    
     
+    # --- Rough Tendon Calculation
 
     # --- Handle BC and root/tip conditions
     BC_root = [0,0,0,0,0,0]
     # BC_root  = [1,1,1,1,1,1]
-    BC_tip  = [1,1,1,1,1,1]
+    BC_rna  = [1,1,1,1,1,1]
     
     M_root = None
-    M_tip = PointMassMatrix(m=100000.,Ref2COG=(0,0.2,0))
+    M_rna = PointMassMatrix(m=M_rna,Ref2COG=(0,0.2,0))
     K_root = None
-    K_tip = None
+    K_rna = None
 
     # Insert tip/root inertias
     if M_root is not None:
         M_glob[np.ix_(IDOF_root, IDOF_root)] += M_root
-    if M_tip is not None:
-        M_glob[np.ix_(IDOF_tip, IDOF_tip)]   += M_tip
+    if M_rna is not None:
+        M_glob[np.ix_(IDOF_rna, IDOF_rna)]   += M_rna
 
     # Insert tip/root stiffness
     if K_root is not None:
         K_glob[np.ix_(IDOF_root, IDOF_root)] += K_root
-    if K_tip is not None:
-        K_glob[np.ix_(IDOF_tip, IDOF_tip)] += K_tip
+    if K_rna is not None:
+        K_glob[np.ix_(IDOF_rna, IDOF_rna)] += K_rna
 
     # Boundary condition transformation matrix (removes row/columns)
     Tr=np.eye(nDOF_tot)
 
     # Root and Tip BC
     IDOF_removed = [i for i,iBC in zip(IDOF_root, BC_root) if iBC==0]
-    IDOF_removed += [i for i,iBC in zip(IDOF_tip, BC_tip) if iBC==0]
+    IDOF_removed += [i for i,iBC in zip(IDOF_rna, BC_rna) if iBC==0]
     Tr = np.delete(Tr, IDOF_removed, axis=1) # removing columns
 
     Mr = (Tr.T).dot(M_glob).dot(Tr)
