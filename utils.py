@@ -25,7 +25,7 @@ def LinearDOFMapping(nNodesPerElem, nDOFperNode, nElems, atNodes):
     
     for i in range(nBeams - 1):
         # attach = np.arange(np.max(layout),np.max(layout)+11)
-        attach = [max(max(layout)) + i for i in range(nNodes[i+1])]
+        attach = [max(layout[-1]) + i for i in range(nNodes[i+1])]
         attach[0] = atNodes[i]
         layout.append(attach)
 
