@@ -76,12 +76,16 @@ def UniformBeam():
     M_above = M_tot - M_pont_tot - np.cumsum(M_beam[:idx])
     P_beam[:idx] += (M_above * myconst.G)
 
-    # Volume calculation
+    # Volume/Pretension calculation
     vol_pont = (np.pi/4.) * D_pont**2. * (sum(L_beam_2) - (3/2)*D_col)
     vol_col = (np.pi/4.) * D_col**2. * sum(L_beam_0a)
     buoy = (vol_col + vol_pont) * myconst.RHO_SW * myconst.G
+    CoB = -1. * ((vol_pont * draft) + (vol_col * draft / 2.))/(vol_pont + vol_col)
     weight = M_tot * myconst.G
     pretension = (buoy - weight) / 3. # N
+
+    # Hydrostatic stiffness calculation
+
 
     # --- Node Locations
     z_beamnode_0 = np.linspace(-1.*draft,0.,nNodes[0])
@@ -156,6 +160,7 @@ def UniformBeam():
     IDOF_tend1  = Nodes2DOF[Layout[3][-1]]
     IDOF_tend2  = Nodes2DOF[Layout[4][-1]]
     IDOF_tend3  = Nodes2DOF[Layout[5][-1]]    
+    IDOF_swl = Nodes2DOF[Layout[0][-1]]
     
     # --- Rough Tendon Calculation
 
@@ -317,7 +322,7 @@ def plotFEM(FEM):
     ## --- Shapes Plot from FEA
     font = {'size': 16}
     plt.rc('font', **font)
-    fig1, axs = plt.subplot_mosaic([['ul', '.'], ['ll', 'lr']], figsize=(12, 10), layout='tight')
+    fig1, axs = plt.subplot_mosaic([['ul', '.'], ['ll', 'lr']], figsize=(12, 8), layout='tight')
 
     for i in range(nModes):
         axs['ul'].plot(x_nodes[:,i], y_nodes[:,i], label='Mode %2d: %2.3f Hz' %((i+1, eigfreqs[i])), ls='None', marker='o', ms=5)
