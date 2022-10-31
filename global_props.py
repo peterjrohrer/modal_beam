@@ -1,6 +1,6 @@
 import numpy as np
 import myconstants as myconst
-
+import scipy.linalg
 
 def GlobalMass(M_elem, L_elem):
     """
@@ -69,7 +69,8 @@ def PointMassMatrix(m=None, J_G=None, Ref2COG=None):
     if m is None: m=0
     if Ref2COG is None: Ref2COG=(0,0,0)
     if J_G is None: J_G=np.zeros((3,3))
-    if len(J_G.flatten()==3): J_G = np.eye(3).dot(J_G)
+    if len(J_G.flatten())==3:
+        J_G = J_G * np.eye(3)
 
     M_point = np.zeros((6,6))
     x,y,z = Ref2COG

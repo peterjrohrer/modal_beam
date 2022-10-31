@@ -33,44 +33,54 @@ def doArgs(argList, name):
 def UniformBeam():   
     # --- Parameters
     beamNames = ['col','trans','tow','pont1','pont2','pont3']
-    nElems = [20,5,30,10,10,10] # Number of elements along the beam
-    nNodes = [21,6,31,11,11,11] # Number of nodes (one on each end of each element)
+    nElems = [12,3,22,5,5,5] # Number of elements along the beam
+    nNodes = [13,4,23,6,6,6] # Number of nodes (one on each end of each element)
     nDOFperNode = 6
     nNodesPerElem = 2
+    idx_col = sum(nElems[:2])
+    idx = sum(nElems[:3])
 
     D_col = 12. # m
     D_beam_0 = (D_col*np.ones(nElems[0]+nElems[1]))
-    D_beam_1 = np.linspace(8.3,5.5,nElems[2])
+    D_beam_1a = np.linspace(8.3,5.5,nElems[2]-2)
+    D_beam_1b = [5.5, 5.5]
     D_pont = 8.
     D_beam_2 = (D_pont*np.ones(nElems[3]+nElems[4]+nElems[5]))
 
     wt_col = 0.04 # m
     wt_beam_0 = (wt_col*np.ones(nElems[0]+nElems[1]))
-    wt_beam_1 = np.linspace(0.038,0.02,nElems[2])
+    wt_beam_1a = np.linspace(0.038,0.02,nElems[2]-2)
+    wt_beam_1b = [0.02, 0.02]
     wt_pont = 0.04
     wt_beam_2 = (wt_pont*np.ones(nElems[3]+nElems[4]+nElems[5]))
 
     draft = 30.
+    freebd = 10.
+    tow_top = 115.63
+    pont_rad = 34.
     L_col = draft/nElems[0] # m
     L_beam_0a = (L_col*np.ones(nElems[0]))
-    L_trans = 10./nElems[1] # m
+    L_trans = freebd/nElems[1] # m
     L_beam_0b = (L_trans*np.ones(nElems[1]))
-    L_tower = 105./nElems[2]
-    L_beam_1 = (L_tower*np.ones(nElems[2]))
-    pont_rad = 34.
+    L_tower = (tow_top - freebd)/nElems[2]
+    L_beam_1a = (L_tower*np.ones(nElems[2]-2))
+    L_beam_1b = [2.45, 0.92]
     L_pont = pont_rad/nElems[3] # m
     L_beam_2 = (L_pont*np.ones(nElems[3]+nElems[4]+nElems[5]))
 
-    D_beam = np.concatenate((D_beam_0, D_beam_1, D_beam_2))
-    wt_beam = np.concatenate((wt_beam_0, wt_beam_1, wt_beam_2))
-    L_beam = np.concatenate((L_beam_0a, L_beam_0b, L_beam_1, L_beam_2))
+    D_beam = np.concatenate((D_beam_0, D_beam_1a, D_beam_1b, D_beam_2))
+    wt_beam = np.concatenate((wt_beam_0, wt_beam_1a, wt_beam_1b, wt_beam_2))
+    L_beam = np.concatenate((L_beam_0a, L_beam_0b, L_beam_1a, L_beam_1b, L_beam_2))
     A_beam = (np.pi/4.) * (D_beam**2. - (D_beam - (2.*wt_beam))**2.)
-    M_beam = A_beam * L_beam * myconst.RHO_STL 
+    V_beam = (np.pi/4.) * D_beam**2. * L_beam
+    M_beam = A_beam * L_beam * myconst.RHO_STL
+    M_beam[idx-2:idx] = 0. 
     M_rna = 674000.
 
     # Axial force calculation
     M_tot = sum(M_beam) + M_rna
-    idx = sum(nElems[:3])
+    M_col = sum(M_beam[:idx_col])
+    M_tow = sum(M_beam[idx_col:idx])
     M_pont_tot = sum(M_beam[idx:])
     P_beam = np.zeros_like(M_beam)
     M_above = M_tot - M_pont_tot - np.cumsum(M_beam[:idx])
@@ -78,26 +88,52 @@ def UniformBeam():
 
     # Volume/Pretension calculation
     vol_pont = (np.pi/4.) * D_pont**2. * (sum(L_beam_2) - (3/2)*D_col)
-    vol_col = (np.pi/4.) * D_col**2. * sum(L_beam_0a)
+    vol_col = sum(V_beam[:nElems[0]])
     buoy = (vol_col + vol_pont) * myconst.RHO_SW * myconst.G
     CoB = -1. * ((vol_pont * draft) + (vol_col * draft / 2.))/(vol_pont + vol_col)
     weight = M_tot * myconst.G
     pretension = (buoy - weight) / 3. # N
+    P_beam[:nElems[0]] += -1. * myconst.RHO_SW * myconst.G * np.cumsum(V_beam[:nElems[0]])
+
+    # CoG Calculation
+    substr_mass = M_col + M_pont_tot
+    substr_cog = ((-1. * M_col * (draft / 2.)) + (-1. * M_pont_tot * draft))/substr_mass
+    turb_mass = M_tow + M_rna
+    turb_cog = ((M_tow * (freebd + ((tow_top - freebd) / 2.))) + (M_rna * tow_top))/turb_mass
+    CoG = ((substr_cog * substr_mass) + (turb_cog * turb_mass))/M_tot
 
     # Hydrostatic stiffness calculation
+    D_wp = D_beam[nElems[0]]
+    A_wp = (np.pi / 4.) * D_wp * D_wp
+    I_wp = (np.pi / 64.) * D_wp * D_wp * D_wp * D_wp
+    c33 = myconst.RHO_SW * myconst.G * A_wp
+    c44 = (myconst.RHO_SW * myconst.G * I_wp) + (myconst.RHO_SW * myconst.G * (vol_col + vol_pont) * CoB) - (M_tot * CoG * myconst.G)
+    K_hydro = np.zeros((6,6))
+    K_hydro[2,2] = c33
+    K_hydro[3,3] = K_hydro[4,4] = c44
 
+    # Tendon calculations
+    D_tend = 1.1 # m
+    L_tend = 200 - draft # fixed water depth of 200 m
+    A_tend = (np.pi/4.) * D_tend * D_tend
+    A_xc_tend = A_tend * (myconst.RHO_SW/myconst.RHO_STL)
+    k11 = pretension/L_tend
+    k33 = myconst.E_TEND * A_xc_tend / L_tend
+    K_tend = np.zeros((6,6))
+    K_tend[2,2] = k33
+    K_tend[0,0] = K_hydro[1,1] = k11
 
     # --- Node Locations
     z_beamnode_0 = np.linspace(-1.*draft,0.,nNodes[0])
     y_beamnode_0 = np.zeros_like(z_beamnode_0)
     x_beamnode_0 = np.zeros_like(z_beamnode_0)
 
-    z_beamnode_1 = np.linspace(0.,10.,nNodes[1])
+    z_beamnode_1 = np.linspace(0.,freebd,nNodes[1])
     z_beamnode_1 = np.delete(z_beamnode_1,0)
     y_beamnode_1 = np.zeros_like(z_beamnode_1)
     x_beamnode_1 = np.zeros_like(z_beamnode_1)
 
-    z_beamnode_2 = np.linspace(10.,115.,nNodes[2])
+    z_beamnode_2 = np.linspace(freebd,tow_top,nNodes[2])
     z_beamnode_2 = np.delete(z_beamnode_2,0)
     y_beamnode_2 = np.zeros_like(z_beamnode_2)
     x_beamnode_2 = np.zeros_like(z_beamnode_2)
@@ -127,7 +163,7 @@ def UniformBeam():
     nElem = sum(nElems)
 
     # Map nodes/DOF
-    Elem2Nodes, Nodes2DOF, Elem2DOF, Layout, nNode = LinearDOFMapping(nNodesPerElem, nDOFperNode, nElems=nElems, atNodes=[20,25,0,0,0])
+    Elem2Nodes, Nodes2DOF, Elem2DOF, Layout, nNode = LinearDOFMapping(nNodesPerElem, nDOFperNode, nElems=nElems, atNodes=[12,15,0,0,0])
 
     nDOF_tot = nNode * nDOFperNode
     
@@ -156,43 +192,44 @@ def UniformBeam():
     IDOF_All = np.arange(0,nDOF_tot)
     # Tip and root degrees of freedom
     IDOF_root = Nodes2DOF[Layout[0][0]]
-    IDOF_rna  = Nodes2DOF[Layout[2][-1]]
+    IDOF_towtop  = Nodes2DOF[Layout[2][-3]]
+    IDOF_nac  = Nodes2DOF[Layout[2][-2]]
+    IDOF_rotor  = Nodes2DOF[Layout[2][-1]]
     IDOF_tend1  = Nodes2DOF[Layout[3][-1]]
     IDOF_tend2  = Nodes2DOF[Layout[4][-1]]
     IDOF_tend3  = Nodes2DOF[Layout[5][-1]]    
     IDOF_swl = Nodes2DOF[Layout[0][-1]]
     
-    # --- Rough Tendon Calculation
-
-    # --- Handle BC and root/tip conditions
-    BC_root = [0,0,0,0,0,0]
-    # BC_root  = [1,1,1,1,1,1]
-    BC_rna  = [1,1,1,1,1,1]
+    # --- Handle Point Mass and Rigid Link conditions
+    RL_rna = [0,0,0,0,0,0]
     
-    M_root = None
-    M_rna = PointMassMatrix(m=M_rna,Ref2COG=(0,0.2,0))
-    K_root = None
-    K_rna = None
+    M_preten = PointMassMatrix(m=(pretension/myconst.G))
+    M_nac = PointMassMatrix(m=4.4604e+05, J_G=np.array([[4.106e+05, 4.106e+06, 4.106e+06]]), Ref2COG=(2.687,0.,0.))
+    M_rotor = PointMassMatrix(m=1.0552e+05, J_G=np.array([[3.2567e+05, 0., 0.]]), Ref2COG=(-7.073,0.,0.))
 
-    # Insert tip/root inertias
-    if M_root is not None:
-        M_glob[np.ix_(IDOF_root, IDOF_root)] += M_root
-    if M_rna is not None:
-        M_glob[np.ix_(IDOF_rna, IDOF_rna)]   += M_rna
+    # Insert point inertias
+    M_glob[np.ix_(IDOF_nac, IDOF_nac)] += M_nac
+    M_glob[np.ix_(IDOF_rotor, IDOF_rotor)] += M_rotor
+    M_glob[np.ix_(IDOF_tend1, IDOF_tend1)] += M_preten
+    M_glob[np.ix_(IDOF_tend2, IDOF_tend2)] += M_preten
+    M_glob[np.ix_(IDOF_tend3, IDOF_tend3)] += M_preten
 
-    # Insert tip/root stiffness
-    if K_root is not None:
-        K_glob[np.ix_(IDOF_root, IDOF_root)] += K_root
-    if K_rna is not None:
-        K_glob[np.ix_(IDOF_rna, IDOF_rna)] += K_rna
+    # Insert point stiffnesses
+    K_glob[np.ix_(IDOF_swl, IDOF_swl)] += K_hydro
+    K_glob[np.ix_(IDOF_tend1, IDOF_tend1)] += K_tend
+    K_glob[np.ix_(IDOF_tend2, IDOF_tend2)] += K_tend
+    K_glob[np.ix_(IDOF_tend3, IDOF_tend3)] += K_tend
 
-    # Boundary condition transformation matrix (removes row/columns)
+    # Boundary condition/Rigid Link transformation matrix (removes row/columns)
     Tr=np.eye(nDOF_tot)
 
     # Root and Tip BC
-    IDOF_removed = [i for i,iBC in zip(IDOF_root, BC_root) if iBC==0]
-    IDOF_removed += [i for i,iBC in zip(IDOF_rna, BC_rna) if iBC==0]
+    IDOF_removed = []
+    IDOF_removed += [i for i,iRL in zip(IDOF_nac, RL_rna) if iRL==0]
+    IDOF_removed += [i for i,iRL in zip(IDOF_rotor, RL_rna) if iRL==0]
     Tr = np.delete(Tr, IDOF_removed, axis=1) # removing columns
+    Tr[IDOF_nac,IDOF_towtop] += 1.
+    Tr[IDOF_rotor,IDOF_towtop] += 1.
 
     Mr = (Tr.T).dot(M_glob).dot(Tr)
     Kr = (Tr.T).dot(K_glob).dot(Tr)
@@ -210,7 +247,7 @@ def UniformBeam():
             IFull2BC[i]=k
             IBC2Full[k]=i
             k+=1
-    
+
     Qr, eigfreqs, spectr = Eigenproblem(Mr, Kr)
     # Add fixed BC back into eigenvectors
     Q = Tr.dot(Qr)
@@ -239,16 +276,16 @@ def UniformBeam():
         # z_elems[:, i] = ModeshapeElem(x_beamnode, z_nodes[:,i], z_d_nodes[:,i])
 
     print('----- FROM FINITE ELEMENT MODEL -----')
-    print('Mode 1 Nat. Freq: %3.3f Hz' %(eigfreqs[0]))
-    print('Mode 2 Nat. Freq: %3.3f Hz' %(eigfreqs[1]))
-    print('Mode 3 Nat. Freq: %3.3f Hz' %(eigfreqs[2]))
-    print('Mode 4 Nat. Freq: %3.3f Hz' %(eigfreqs[3]))
-    print('Mode 5 Nat. Freq: %3.3f Hz' %(eigfreqs[4]))
-    print('Mode 6 Nat. Freq: %3.3f Hz' %(eigfreqs[5]))
-    print('Mode 7 Nat. Freq: %3.3f Hz' %(eigfreqs[6]))
-    print('Mode 8 Nat. Freq: %3.3f Hz' %(eigfreqs[7]))
-    print('Mode 9 Nat. Freq: %3.3f Hz' %(eigfreqs[8]))
-    print('Mode 10 Nat. Freq: %3.3f Hz' %(eigfreqs[9]))
+    print('Mode 1 Nat. Freq: %3.3f Hz (%3.3f s)' %(eigfreqs[0], (1./eigfreqs[0])))
+    print('Mode 2 Nat. Freq: %3.3f Hz (%3.3f s)' %(eigfreqs[1], (1./eigfreqs[1])))
+    print('Mode 3 Nat. Freq: %3.3f Hz (%3.3f s)' %(eigfreqs[2], (1./eigfreqs[2])))
+    print('Mode 4 Nat. Freq: %3.3f Hz (%3.3f s)' %(eigfreqs[3], (1./eigfreqs[3])))
+    print('Mode 5 Nat. Freq: %3.3f Hz (%3.3f s)' %(eigfreqs[4], (1./eigfreqs[4])))
+    print('Mode 6 Nat. Freq: %3.3f Hz (%3.3f s)' %(eigfreqs[5], (1./eigfreqs[5])))
+    print('Mode 7 Nat. Freq: %3.3f Hz (%3.3f s)' %(eigfreqs[6], (1./eigfreqs[6])))
+    print('Mode 8 Nat. Freq: %3.3f Hz (%3.3f s)' %(eigfreqs[7], (1./eigfreqs[7])))
+    print('Mode 9 Nat. Freq: %3.3f Hz (%3.3f s)' %(eigfreqs[8], (1./eigfreqs[8])))
+    print('Mode 10 Nat. Freq: %3.3f Hz (%3.3f s)' %(eigfreqs[9], (1./eigfreqs[9])))
 
 	## --- Check Frequencies
     M_modal = Q[:,:nModes].T @ M_glob @ Q[:,:nModes]
@@ -258,16 +295,16 @@ def UniformBeam():
     modal_freqs = np.sort(np.sqrt(np.real(eig_vals)) /(2*np.pi))
 	
     print('----- FROM MODAL MATRICES -----')
-    print('Mode 1 Nat. Freq: %3.3f Hz' %(modal_freqs[0]))
-    print('Mode 2 Nat. Freq: %3.3f Hz' %(modal_freqs[1]))
-    print('Mode 3 Nat. Freq: %3.3f Hz' %(modal_freqs[2]))
-    print('Mode 4 Nat. Freq: %3.3f Hz' %(modal_freqs[3]))
-    print('Mode 5 Nat. Freq: %3.3f Hz' %(modal_freqs[4]))
-    print('Mode 6 Nat. Freq: %3.3f Hz' %(modal_freqs[5]))
-    print('Mode 7 Nat. Freq: %3.3f Hz' %(modal_freqs[6]))
-    print('Mode 8 Nat. Freq: %3.3f Hz' %(modal_freqs[7]))
-    print('Mode 9 Nat. Freq: %3.3f Hz' %(modal_freqs[8]))
-    print('Mode 10 Nat. Freq: %3.3f Hz' %(modal_freqs[9]))
+    print('Mode 1 Nat. Freq: %3.3f Hz (%3.3f s)' %(modal_freqs[0], (1./modal_freqs[0])))
+    print('Mode 2 Nat. Freq: %3.3f Hz (%3.3f s)' %(modal_freqs[1], (1./modal_freqs[1])))
+    print('Mode 3 Nat. Freq: %3.3f Hz (%3.3f s)' %(modal_freqs[2], (1./modal_freqs[2])))
+    print('Mode 4 Nat. Freq: %3.3f Hz (%3.3f s)' %(modal_freqs[3], (1./modal_freqs[3])))
+    print('Mode 5 Nat. Freq: %3.3f Hz (%3.3f s)' %(modal_freqs[4], (1./modal_freqs[4])))
+    print('Mode 6 Nat. Freq: %3.3f Hz (%3.3f s)' %(modal_freqs[5], (1./modal_freqs[5])))
+    print('Mode 7 Nat. Freq: %3.3f Hz (%3.3f s)' %(modal_freqs[6], (1./modal_freqs[6])))
+    print('Mode 8 Nat. Freq: %3.3f Hz (%3.3f s)' %(modal_freqs[7], (1./modal_freqs[7])))
+    print('Mode 9 Nat. Freq: %3.3f Hz (%3.3f s)' %(modal_freqs[8], (1./modal_freqs[8])))
+    print('Mode 10 Nat. Freq: %3.3f Hz (%3.3f s)' %(modal_freqs[9], (1./modal_freqs[9])))
 
     # --- Return a dictionary
     FEM = {
@@ -322,7 +359,7 @@ def plotFEM(FEM):
     ## --- Shapes Plot from FEA
     font = {'size': 16}
     plt.rc('font', **font)
-    fig1, axs = plt.subplot_mosaic([['ul', '.'], ['ll', 'lr']], figsize=(12, 8), layout='tight')
+    fig1, axs = plt.subplot_mosaic([['ul', 'lr'], ['ll', 'lr']], figsize=(12, 8), layout='tight')
 
     for i in range(nModes):
         axs['ul'].plot(x_nodes[:,i], y_nodes[:,i], label='Mode %2d: %2.3f Hz' %((i+1, eigfreqs[i])), ls='None', marker='o', ms=5)
@@ -342,9 +379,10 @@ def plotFEM(FEM):
     # axs['lr'].set_xlim(-1.1,1.1)
     # axs['lr'].set_ylim(-1,1.1)
     axs['lr'].set_xlabel('Y-displacement')
-
-    handles, labels = axs['lr'].get_legend_handles_labels()
-    fig1.legend(handles, labels, loc='upper right')
+    
+    axs['lr'].legend()
+    # handles, labels = axs['lr'].get_legend_handles_labels()
+    # fig1.legend(handles, labels, loc='upper right')
     fig1.suptitle('Modeshapes from FEA')
 
 def main():
