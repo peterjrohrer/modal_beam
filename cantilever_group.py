@@ -2,6 +2,7 @@ import numpy as np
 import openmdao.api as om
 
 from beam import Beam
+from beam_directional_cosines import BeamDirectionalCosines
 from modeshape_group import Modeshape
 
 from global_mass import GlobalMass
@@ -11,21 +12,22 @@ from global_stiffness import GlobalStiffness
 class Cantilever(om.Group):
 
     def initialize(self):
-        self.options.declare('nNode', types=int)
-        self.options.declare('nElem', types=int)
-        self.options.declare('nDOF', types=int)
+        self.options.declare('nodal_data', types=dict)
 
     def setup(self):
-        nNode = self.options['nNode']        
-        nElem = self.options['nElem']
-        nDOF = self.options['nDOF']        
+        nodal_data = self.options['nodal_data']      
 
         self.add_subsystem('beam',
-            Beam(nNode=nNode,nElem=nElem),
-            promotes_inputs=['D_beam', 'wt_beam'],
-            promotes_outputs=['Z_beam', 'L_beam', 'M_beam', 'tot_M_beam'])
+            Beam(nodal_data=nodal_data),
+            promotes_inputs=['D_beam', 'wt_beam', 'L_beam_tot'],
+            promotes_outputs=['L_beam', 'A_beam', 'Ix_beam', 'Iy_beam', 'M_beam', 'tot_M_beam', 'x_beamnode', 'y_beamnode', 'z_beamnode'])
+        
+        self.add_subsystem('dir_cosines',
+            BeamDirectionalCosines(nodal_data=nodal_data),
+            promotes_inputs=['x_beamnode', 'y_beamnode', 'z_beamnode'],
+            promotes_outputs=['dir_cosines'])
 
-        modeshape_group = Modeshape(nNode=nNode, nElem=nElem, nDOF=nDOF)
+        modeshape_group = Modeshape(nodal_data=nodal_data)
         # modeshape_group.linear_solver = om.ScipyKrylov()
         # modeshape_group.linear_solver = om.DirectSolver(assemble_jac=True)
         # modeshape_group.linear_solver.precon = DirectSolver(assemble_jac=True)
@@ -34,7 +36,7 @@ class Cantilever(om.Group):
 
         self.add_subsystem('modeshape_group',
             modeshape_group,
-            promotes_inputs=['Z_beam', 'D_beam', 'L_beam', 'M_beam', 'tot_M_beam', 'wt_beam'],
+            promotes_inputs=['L_beam', 'A_beam', 'Ix_beam', 'Iy_beam', 'M_beam', 'tot_M_beam', 'x_beamnode', 'y_beamnode', 'z_beamnode', 'dir_cosines'],
             promotes_outputs=['eig_vector_*', 'eig_freq_*', 'z_beamnode', 'z_beamelem',
                 'x_beamnode_*', 'x_d_beamnode_*', 
                 'x_beamelem_*', 'x_d_beamelem_*', 'x_dd_beamelem_*',
