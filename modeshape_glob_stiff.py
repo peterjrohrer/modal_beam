@@ -5,70 +5,40 @@ from openmdao.api import ExplicitComponent
 class ModeshapeGlobStiff(ExplicitComponent):
 
     def initialize(self):
-        self.options.declare('nNode', types=int)
-        self.options.declare('nElem', types=int)
-        self.options.declare('nDOF', types=int)
+        self.options.declare('nodal_data', types=dict)
 
     def setup(self):
-        nNode = self.options['nNode']
-        nElem = self.options['nElem']
-        nDOF = self.options['nDOF']
-        
-        self.add_input('kel', val=np.zeros((nElem, 4, 4)), units='N/m')
-        
-        self.add_output('K_mode', val=np.zeros((nDOF, nDOF)), units='N/m')
+        self.nodal_data = self.options['nodal_data']
+        nElem = self.nodal_data['nElem']
+        nDOF = self.nodal_data['nDOF_tot']
 
+        self.add_input('kel', val=np.zeros((nElem, 12, 12)), units='kg')
+    
+        self.add_output('K_glob', val=np.zeros((nDOF, nDOF)), units='kg')
+
+    def setup_partials(self):
         self.declare_partials('*', '*')
 
     def compute(self, inputs, outputs):
-        nNode = self.options['nNode']
-        nElem = self.options['nElem']        
-        nDOF = self.options['nDOF']
+        nElem = self.nodal_data['nElem']
+        nDOF = self.nodal_data['nDOF_tot']
+        Elem2DOF = self.nodal_data['Elem2DOF']
 
         kel = inputs['kel']
-        
-        K_mode_all = np.zeros((2*nNode,2*nNode))
+       
+        K_glob = np.zeros((nDOF, nDOF))
+        for k in range(nElem):
+            DOFindex=Elem2DOF[k,:]
 
-        LD = np.zeros((nElem, 4))
+            for i,ii in enumerate(DOFindex):
+                for j,jj in enumerate(DOFindex):
+                    K_glob[ii,jj] += kel[k,i,j]
 
-        for i in range(nElem):
-            for j in range(4):
-                LD[i, j] = j + 2 * i
+        outputs['K_glob'] = K_glob
 
-        for i in range(nElem):
-            for j in range(4):
-                row = int(LD[i][j])
-                if row > -1:
-                    for p in range(4):
-                        col = int(LD[i][p])
-                        if col > -1:
-                            K_mode_all[row][col] += kel[i][j][p]
-        
-        # Drop first two DOF
-        outputs['K_mode'] = K_mode_all[2:,2:]
-        
     def compute_partials(self, inputs, partials):
-        nNode = self.options['nNode']
-        nElem = self.options['nElem']
-        nDOF = self.options['nDOF']
-        partials['K_mode', 'kel'] = np.zeros(((nDOF * nDOF), (nElem*16)))
-        LD = np.zeros((nElem, 4))
+        nElem = self.nodal_data['nElem']
+        nDOF = self.nodal_data['nDOF_tot']
+        Elem2DOF = self.nodal_data['Elem2DOF']
 
-        K_mode_all = np.zeros(((2*nNode*2*nNode), (nElem*16)))
-
-        for i in range(nElem):
-            for j in range(4):
-                LD[i, j] = j + 2 * i
-
-        for i in range(nElem-1):
-            for j in range(4):
-                row = int(LD[i][j])
-                if row > -1:
-                    for p in range(4):
-                        col = int(LD[i][p])
-                        if col > -1:
-                            K_mode_all[(nDOF * row + col)][16 * i + 4 * j + p] += 1.
-
-        offset1 = (4*nNode) - 2
-        offset2 = -1*((4*nNode) - 2)
-        partials['K_mode', 'kel'] = K_mode_all[offset1:offset2]
+        partials['K_glob', 'kel'] = np.zeros(((nDOF*nDOF),(nElem*12*12)))

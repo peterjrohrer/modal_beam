@@ -9,6 +9,7 @@ class ModeshapeElemMass(om.ExplicitComponent):
         self.options.declare('nodal_data', types=dict)
 
     def setup(self):
+        self.nodal_data = self.options['nodal_data']
         nElem = self.nodal_data['nElem']
         nNode = self.nodal_data['nNode']
 
@@ -63,11 +64,13 @@ class ModeshapeElemMass(om.ExplicitComponent):
         
     ##TODO Check these partials!
     def compute_partials(self, inputs, partials):
+        nElem = self.nodal_data['nElem']
+        nNode = self.nodal_data['nNode']
+
         L_beam = inputs['L_beam']
         M_beam = inputs['M_beam']
         L = inputs['L_mode_elem']
         
-        nElem = self.options['nElem']
         N_mel_part = 12 * 12 * nElem
 
         partials['mel', 'L_beam'] = np.zeros((N_mel_part, nElem))

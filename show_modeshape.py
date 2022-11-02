@@ -19,6 +19,33 @@ nDOFperNode =  6
 nNodeperElem =  2
 Elem2Nodes, Nodes2DOF, Elem2DOF = LinearDOFMapping(nElem, nNodeperElem, nDOFperNode)
 nDOF_tot = nDOFperNode * nNode
+IDOF_All = np.arange(0,nDOF_tot)
+# Tip and root degrees of freedom
+IDOF_root = Nodes2DOF[Elem2Nodes[0,:][0] ,:]
+IDOF_tip  = Nodes2DOF[Elem2Nodes[-1,:][1],:]
+# Handle BC and root/tip conditions
+BC_root = [0,0,0,0,0,0]
+BC_tip  = [1,1,1,1,1,1]
+# Boundary condition transformation matrix (removes row/columns)
+Tr=np.eye(nDOF_tot)
+# Root and Tip BC
+IDOF_removed = [i for i,iBC in zip(IDOF_root, BC_root) if iBC==0]
+IDOF_removed += [i for i,iBC in zip(IDOF_tip, BC_tip) if iBC==0]
+Tr = np.delete(Tr, IDOF_removed, axis=1) # removing columns
+# --- Create mapping from M to Mr
+nDOF_r = Tr.shape[1]
+IDOF_BC = list(np.setdiff1d(IDOF_All, IDOF_removed))
+IFull2BC = np.zeros(nDOF_tot,dtype=int)
+IBC2Full = np.zeros(nDOF_r,dtype=int)
+k=0
+for i in IDOF_All:
+    if i in IDOF_removed:
+        IFull2BC[i]=-1
+    else:
+        IFull2BC[i]=k
+        IBC2Full[k]=i
+        k+=1
+
 nMode = 5
 nodal_data = {
     'nElem': nElem,
@@ -29,6 +56,13 @@ nodal_data = {
     'Nodes2DOF': Nodes2DOF, 
     'Elem2DOF': Elem2DOF,
     'nDOF_tot': nDOF_tot,
+    'IDOF_root': IDOF_root, 
+    'IDOF_tip': IDOF_tip, 
+    'BC_root': BC_root, 
+    'BC_tip': BC_tip,
+    'IDOF_removed': IDOF_removed,
+    'Tr': Tr, 
+    'nDOF_r': nDOF_r,
     'nMode': nMode,
 }
 

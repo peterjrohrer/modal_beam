@@ -7,12 +7,12 @@ import openmdao.api as om
 class ModeshapeElemGeomStiff(om.ExplicitComponent):
     
     def initialize(self):
-        self.options.declare('nNode', types=int)
-        self.options.declare('nElem', types=int)
+        self.options.declare('nodal_data', types=dict)
 
     def setup(self):
-        nNode = self.options['nNode']
-        nElem = self.options['nElem']
+        self.nodal_data = self.options['nodal_data']
+        nElem = self.nodal_data['nElem']
+        nNode = self.nodal_data['nNode']
         
         self.add_input('L_beam', val=np.zeros(nElem), units='m')
         self.add_input('P_beam', val=np.zeros(nElem), units='N')

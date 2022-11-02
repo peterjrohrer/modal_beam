@@ -24,15 +24,16 @@ class ModeshapeElemMatStiff(om.ExplicitComponent):
         self.options.declare('nodal_data', types=dict)
 
     def setup(self):
+        self.nodal_data = self.options['nodal_data']
         nElem = self.nodal_data['nElem']
         nNode = self.nodal_data['nNode']
     
         self.add_input('L_beam', val=np.zeros(nElem), units='m')
         self.add_input('A_beam', val=np.zeros(nElem), units='m**2')
-        self.add_input('Ix_beam', val=np.zeros(nElem), units='m**4')
+        self.add_input('Iy_beam', val=np.zeros(nElem), units='m**4')
         self.add_input('dir_cosines', val=np.zeros((nElem,3,3)))     
 
-        self.add_output('EI_mode_elem', val=np.zeros((nElem,12,12)), units='N/m')
+        self.add_output('kel_mat', val=np.zeros((nElem,12,12)), units='N/m')
 
     def setup_partials(self):
         self.declare_partials('*', '*')
@@ -43,7 +44,7 @@ class ModeshapeElemMatStiff(om.ExplicitComponent):
 
         L_beam = inputs['L_beam']
         EA = inputs['A_beam'] * myconst.E_STL
-        EIy = inputs['Ix_beam'] * myconst.E_STL
+        EIy = inputs['Iy_beam'] * myconst.E_STL
         EIz = EIy
         Kv  = EIy/(myconst.E_STL*10) # check this!
 
@@ -90,4 +91,4 @@ class ModeshapeElemMatStiff(om.ExplicitComponent):
         nNode = self.nodal_data['nNode']
 
         partials['kel_mat', 'L_beam'] = np.zeros(((nElem*12*12), nElem))
-        partials['kel_mat', 'a_beam'] = np.zeros(((nElem*12*12), nElem))
+        partials['kel_mat', 'A_beam'] = np.zeros(((nElem*12*12), nElem))

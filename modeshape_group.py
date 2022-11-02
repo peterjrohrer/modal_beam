@@ -8,6 +8,7 @@ from modeshape_elem_geom_stiff import ModeshapeElemGeomStiff
 from modeshape_elem_stiff import ModeshapeElemStiff
 from modeshape_glob_mass import ModeshapeGlobMass
 from modeshape_glob_stiff import ModeshapeGlobStiff
+from modeshape_dof_reduce import ModeshapeDOFReduce
 
 from modeshape_M_inv import ModeshapeMInv
 from modeshape_eigmatrix import ModeshapeEigmatrix
@@ -36,12 +37,12 @@ class Modeshape(om.Group):
 
         self.add_subsystem('modeshape_elem_mat_stiff', 
             ModeshapeElemMatStiff(nodal_data=nodal_data), 
-            promotes_inputs=['D_beam', 'wt_beam'], 
+            promotes_inputs=['L_beam', 'A_beam', 'Iy_beam', 'dir_cosines'], 
             promotes_outputs=['kel_mat'])
 
         self.add_subsystem('modeshape_elem_geom_stiff', 
             ModeshapeElemGeomStiff(nodal_data=nodal_data), 
-            promotes_inputs=['M_beam', 'tot_M_beam'], 
+            promotes_inputs=['L_beam', 'P_beam', 'dir_cosines'], 
             promotes_outputs=['kel_geom'])
         
         self.add_subsystem('modeshape_elem_stiff', 
@@ -52,17 +53,22 @@ class Modeshape(om.Group):
         self.add_subsystem('modeshape_glob_mass', 
             ModeshapeGlobMass(nodal_data=nodal_data), 
             promotes_inputs=['mel'], 
-            promotes_outputs=['M_mode'])
+            promotes_outputs=['M_glob'])
 
         self.add_subsystem('modeshape_glob_stiff', 
             ModeshapeGlobStiff(nodal_data=nodal_data), 
             promotes_inputs=['kel'], 
-            promotes_outputs=['K_mode'])
+            promotes_outputs=['K_glob'])
+
+        self.add_subsystem('modeshape_dof_reduce',
+            ModeshapeDOFReduce(nodal_data=nodal_data),
+            promotes_inputs=['M_glob','K_glob'], 
+            promotes_outputs=['Mr_glob', 'Kr_glob'])
 
         self.add_subsystem('eigenproblem',
             Eigenproblem(),
-            promotes_inputs=['M_mode', 'K_mode'],
-            promotes_outputs=['eig_vectors', 'eig_vals'])
+            promotes_inputs=['Mr_glob', 'Kr_glob'],
+            promotes_outputs=['Q', 'eig_freqs'])
 
         self.add_subsystem('modeshape_eig_select', 
             ModeshapeEigSelect(nodal_data=nodal_data),
