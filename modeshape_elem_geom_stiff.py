@@ -58,4 +58,4 @@ class ModeshapeElemGeomStiff(om.ExplicitComponent):
         nNode = self.nodal_data['nNode']
 
         partials['kel_geom', 'L_beam'] = np.zeros(((nElem*12*12), nElem))
-        partials['kel_geom', 'a_beam'] = np.zeros(((nElem*12*12), nElem))
+        partials['kel_geom', 'P_beam'] = np.zeros(((nElem*12*12), nElem))

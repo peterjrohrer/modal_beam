@@ -20,7 +20,7 @@ class Cantilever(om.Group):
         self.add_subsystem('beam',
             Beam(nodal_data=nodal_data),
             promotes_inputs=['D_beam', 'wt_beam', 'L_beam_tot'],
-            promotes_outputs=['L_beam', 'A_beam', 'Ix_beam', 'Iy_beam', 'M_beam', 'tot_M_beam', 'x_beamnode', 'y_beamnode', 'z_beamnode'])
+            promotes_outputs=['L_beam', 'A_beam', 'Ix_beam', 'Iy_beam', 'M_beam', 'x_beamnode', 'y_beamnode', 'z_beamnode'])
         
         self.add_subsystem('dir_cosines',
             BeamDirectionalCosines(nodal_data=nodal_data),

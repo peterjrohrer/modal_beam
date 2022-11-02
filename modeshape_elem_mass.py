@@ -69,13 +69,13 @@ class ModeshapeElemMass(om.ExplicitComponent):
 
         L_beam = inputs['L_beam']
         M_beam = inputs['M_beam']
-        L = inputs['L_mode_elem']
+        # L = inputs['L_mode_elem']
         
         N_mel_part = 12 * 12 * nElem
 
         partials['mel', 'L_beam'] = np.zeros((N_mel_part, nElem))
         partials['mel', 'M_beam'] = np.zeros((N_mel_part, nElem))
-        partials['mel', 'L_mode_elem'] = np.zeros((N_mel_part, nElem))
+        # partials['mel', 'L_mode_elem'] = np.zeros((N_mel_part, nElem))
 
         # dm_dLt = np.zeros((nElem, len(L_beam)))
         # dm_dMt = np.zeros((nElem, len(M_beam)))

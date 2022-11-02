@@ -10,9 +10,7 @@ import matplotlib.pyplot as plt
 from utils import *
 from cantilever_group import Cantilever
 
-# Bring in problem with defined defaults
-prob = om.Problem()
-
+## --- Processing nodes (can be done outside of optimization!)
 nElem = 10
 nNode = nElem + 1
 nDOFperNode =  6
@@ -66,6 +64,8 @@ nodal_data = {
     'nMode': nMode,
 }
 
+# Bring in problem with defined defaults
+prob = om.Problem()
 cantilever_group = Cantilever(nodal_data=nodal_data) # Increased nodes
 # cantilever_group.linear_solver = om.DirectSolver(assemble_jac=True)
 # cantilever_group.nonlinear_solver = om.NonlinearBlockGS(maxiter=100, atol=1e-6, rtol=1e-6, use_aitken=True)
@@ -78,7 +78,7 @@ prob.model.set_input_defaults('wt_beam', val=0.01*np.ones(nElem), units='m')
 prob.model.add_subsystem('cantilever', 
     cantilever_group, 
     promotes_inputs=['D_beam', 'wt_beam', 'L_beam_tot'],
-    promotes_outputs=['L_beam', 'A_beam', 'Ix_beam', 'Iy_beam', 'M_beam', 'tot_M_beam', 'x_beamnode', 'y_beamnode', 'z_beamnode', 'dir_cosines', 'Q', 'eig_freqs', 'x_nodes', 'y_nodes', 'z_nodes', 'M_modal', 'K_modal'])
+    promotes_outputs=['L_beam', 'A_beam', 'Ix_beam', 'Iy_beam', 'M_beam', 'x_beamnode', 'y_beamnode', 'z_beamnode', 'dir_cosines', 'Q', 'eig_freqs', 'x_nodes', 'y_nodes', 'z_nodes', 'M_modal', 'K_modal'])
 
 # Setup and run problem
 prob.setup(mode='rev', derivatives=True)

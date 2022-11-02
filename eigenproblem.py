@@ -80,7 +80,7 @@ class Eigenproblem(om.ExplicitComponent):
         bb = imm>0
         if sum(bb)>0:
             W=list(np.where(bb)[0])
-            print('[WARN] Found {:d} complex eigenvectors at positions {}/{}'.format(sum(bb),W,Q.shape[0]))
+            # print('[WARN] Found {:d} complex eigenvectors at positions {}/{}'.format(sum(bb),W,Q.shape[0]))
         Lambda = np.real(Lambda)
 
         outputs['Q_full'] = Q
