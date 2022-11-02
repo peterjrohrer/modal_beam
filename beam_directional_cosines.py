@@ -48,13 +48,13 @@ class BeamDirectionalCosines(om.ExplicitComponent):
         z_nodes = inputs['z_beamnode']
 
         nodes = np.vstack((x_nodes,y_nodes,z_nodes))
-        nElem= nodes.shape[1] - 1
         DCM = np.zeros((nElem,3,3))
 
         for i in np.arange(nElem):
             dx= (nodes[:,i+1]-nodes[:,i]).reshape(3,1)
             le = np.linalg.norm(dx) # element length
-            e1 = dx/le # tangent vector
+            # tangent vector
+            e1 = dx/le 
             if i==0:
                 e1_last = e1
                 e2_last = null(e1.T)[:,0].reshape(3,1) # x,z-> y , y-> -x 
@@ -63,11 +63,7 @@ class BeamDirectionalCosines(om.ExplicitComponent):
             if np.linalg.norm(de1)<1e-8:
                 e2 = e2_last
             else:
-                e2 = de1/np.linalg.norm(de1)
-            # # Rotation about e1
-            # if phi is not None:
-            #     R  = np.cos(phi[i])*np.eye(3) + np.sin(phi[i])*skew(e1) + (1-np.cos(phi[i]))*e1.dot(e1.T);
-            #     e2 = R.dot(e2)
+                e2 = de1/np.linalg.norm(de1) 
             # Third vector
             e3=np.cross(e1.ravel(),e2.ravel()).reshape(3,1)
             DCM[i,:,:]= np.column_stack((e1,e2,e3)).T

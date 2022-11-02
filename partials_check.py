@@ -82,7 +82,7 @@ prob.setup(mode='rev', derivatives=True)
 prob.set_solver_print(level=1)
 prob.run_model()
 
-comp_to_check = 'cantilever.beam'
+comp_to_check = 'cantilever.beam_dir_cosines'
 apart_tol = 1.e-6
 rpart_tol = 1.e-6
 
