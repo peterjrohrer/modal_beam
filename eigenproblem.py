@@ -16,13 +16,13 @@ class Eigenproblem(om.ExplicitComponent):
         self.add_input('Mr_glob', val=np.ones((nDOF_r, nDOF_r)), units='kg')
         self.add_input('Kr_glob', val=np.ones((nDOF_r, nDOF_r)), units='N/m')
 
-        self.add_output('Q', val=np.ones((nDOF_tot, nDOF_r)))
-        self.add_output('eig_freqs', val=np.zeros(nDOF_r), units='1/s')
+        self.add_output('Q_full', val=np.ones((nDOF_tot, nDOF_r)))
+        self.add_output('eig_freqs_full', val=np.zeros(nDOF_r), units='1/s')
 
 
     # def setup_partials(self):
-    #     self.declare_partials('Q', ['Mr_glob', 'Kr_glob'])
-    #     self.declare_partials('eig_freqs', ['Mr_glob', 'Kr_glob'])
+    #     self.declare_partials('Q_full', ['Mr_glob', 'Kr_glob'])
+    #     self.declare_partials('eig_freqs_full', ['Mr_glob', 'Kr_glob'])
 
     def compute(self, inputs, outputs):
         nDOF = self.nodal_data['nDOF_r']
@@ -83,8 +83,8 @@ class Eigenproblem(om.ExplicitComponent):
             print('[WARN] Found {:d} complex eigenvectors at positions {}/{}'.format(sum(bb),W,Q.shape[0]))
         Lambda = np.real(Lambda)
 
-        outputs['Q'] = Q
-        outputs['eig_freqs'] = Lambda
+        outputs['Q_full'] = Q
+        outputs['eig_freqs_full'] = Lambda
     
         ## Based on He, Jonsson, Martins (2022) - Section C. "Modal Method"
         F = np.zeros((nDOF, nDOF), dtype=complex)

@@ -15,7 +15,7 @@ class ModalMass(ExplicitComponent):
         nMode = self.nodal_data['nMode']
 
         self.add_input('M_glob', val=np.zeros((nDOF_tot, nDOF_tot)), units='kg')
-        self.add_input('Q', val=np.ones((nDOF_tot, nDOF_r)))
+        self.add_input('Q', val=np.ones((nDOF_tot, nMode)))
 
         self.add_output('M_modal', val=np.zeros((nMode,nMode)), units='kg')
 
@@ -27,7 +27,7 @@ class ModalMass(ExplicitComponent):
 
         Q = inputs['Q']
         M_glob = inputs['M_glob']
-        M_modal = Q[:,:nMode].T @ M_glob @ Q[:,:nMode]
+        M_modal = Q.T @ M_glob @ Q
         
         outputs['M_modal'] = M_modal
 

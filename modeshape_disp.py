@@ -8,61 +8,56 @@ from openmdao.api import ExplicitComponent
 class ModeshapeDisp(ExplicitComponent):
 
     def initialize(self):
-        self.options.declare('nNode', types=int)
-        self.options.declare('nElem', types=int)
-        self.options.declare('nDOF', types=int)
+        self.options.declare('nodal_data', types=dict)
 
     def setup(self):
-        nNode = self.options['nNode']
-        nElem = self.options['nElem']
-        nDOF = self.options['nDOF']
+        self.nodal_data = self.options['nodal_data']
+        nNode = self.nodal_data['nNode']
+        nDOF_tot = self.nodal_data['nDOF_tot']
+        nMode = self.nodal_data['nMode']
 
-        self.add_input('eig_vector', val=np.ones(nDOF), units='m')
+        self.add_input('Q', val=np.zeros((nDOF_tot,nMode)))
+        self.add_input('x_beamnode', val=np.zeros(nNode), units='m')
+        self.add_input('y_beamnode', val=np.zeros(nNode), units='m')
+        self.add_input('z_beamnode', val=np.zeros(nNode), units='m')
 
-        self.add_output('x_beamnode', val=np.zeros(nNode), units='m/m')
+        self.add_output('x_nodes', val=np.zeros((nNode,nMode)), units='m')
+        self.add_output('y_nodes', val=np.zeros((nNode,nMode)), units='m')
+        self.add_output('z_nodes', val=np.zeros((nNode,nMode)), units='m')
 
+    def setup_partials(self):
         self.declare_partials('*', '*')
 
     def compute(self, inputs, outputs):
-        nNode = self.options['nNode']
-        nElem = self.options['nElem']
-        nDOF = self.options['nDOF']
+        nElem = self.nodal_data['nElem']
+        nDOF_tot = self.nodal_data['nDOF_tot']
+        nMode = self.nodal_data['nMode']
+        nDOFperNode = self.nodal_data['nDOFperNode']
 
-        x_beamnode = np.zeros(nNode)
-        rot_beamnode = np.zeros(nNode)
+        Q = inputs['Q']
 
-        x_beamnode[1:] = inputs['eig_vector'][0:(nElem + 1) * 2:2]
-        rot_beamnode[1:] = inputs['eig_vector'][1:(nElem + 2) * 2:2]
+        x_nodes = np.tile(inputs['x_beamnode'],(nMode,1)).T
+        y_nodes = np.tile(inputs['y_beamnode'],(nMode,1)).T
+        z_nodes = np.tile(inputs['z_beamnode'],(nMode,1)).T
+        th_x_nodes = np.zeros_like(x_nodes)
+        th_y_nodes = np.zeros_like(x_nodes)
+        th_z_nodes = np.zeros_like(x_nodes)
+        
+        for j in range(nMode):
+            eigvec = Q[:,j]
+            x_nodes[:,j] += eigvec[0:(nElem + 1) * nDOFperNode:nDOFperNode]
+            y_nodes[:,j] += eigvec[1:(nElem + 2) * nDOFperNode:nDOFperNode]
+            z_nodes[:,j] += eigvec[2:(nElem + 3) * nDOFperNode:nDOFperNode]
+            th_x_nodes[:,j] += eigvec[3:(nElem + 4) * nDOFperNode:nDOFperNode]
+            th_y_nodes[:,j] += eigvec[4:(nElem + 6) * nDOFperNode:nDOFperNode]
+            th_z_nodes[:,j] += eigvec[5:(nElem + 6) * nDOFperNode:nDOFperNode]
 
-        max_x_node_idx = np.argmax(np.abs(x_beamnode))
-        max_x_node = x_beamnode[max_x_node_idx]
-
-        outputs['x_beamnode'] = x_beamnode / max_x_node
-
-        # print('Spar rot [deg]:', *np.round(rot_sparnode*(180/np.pi),5), sep=', ')
-        # print('Beam rot [deg]:', *np.round(rot_beamnode*(180/np.pi),5), sep=', ')
+        outputs['x_nodes'] = x_nodes
+        outputs['y_nodes'] = y_nodes
+        outputs['z_nodes'] = z_nodes
 
     def compute_partials(self, inputs, partials):
-        nNode = self.options['nNode']
-        nElem = self.options['nElem']
-        nDOF = self.options['nDOF']
-
-        x_beamnode = np.zeros(nNode)
-        rot_beamnode = np.zeros(nNode)
-
-        x_beamnode[1:] = inputs['eig_vector'][0:(nElem + 1) * 2:2]
-        rot_beamnode[1:] = inputs['eig_vector'][1:(nElem + 2) * 2:2]
-
-        max_x_node_idx = np.argmax(np.abs(x_beamnode))
-        max_x_node = x_beamnode[max_x_node_idx]
-
-        partials['x_beamnode', 'eig_vector'] = np.zeros((nNode, nDOF))
-    
-        x_node_partial_all = np.zeros((nNode,nNode*2))
-
-        for i in range(nNode) :
-            x_node_partial_all[i, 2 * i] += 1. / max_x_node
-            # Adjust partials for normalization
-            x_node_partial_all[i, 2*max_x_node_idx] += -1 * x_beamnode[i] / (max_x_node**2)
-
-        partials['x_beamnode', 'eig_vector'] = x_node_partial_all[:,2:]
+        nElem = self.nodal_data['nElem']
+        nDOF_tot = self.nodal_data['nDOF_tot']
+        nMode = self.nodal_data['nMode']
+        nDOFperNode = self.nodal_data['nDOFperNode']

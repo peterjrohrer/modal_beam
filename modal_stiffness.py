@@ -19,7 +19,7 @@ class ModalStiffness(ExplicitComponent):
         nMode = self.nodal_data['nMode']
 
         self.add_input('K_glob', val=np.zeros((nDOF_tot, nDOF_tot)), units='N/m')
-        self.add_input('Q', val=np.ones((nDOF_tot, nDOF_r)))
+        self.add_input('Q', val=np.ones((nDOF_tot, nMode)))
 
         self.add_output('K_modal', val=np.zeros((nMode,nMode)), units='N/m')
 
@@ -31,7 +31,7 @@ class ModalStiffness(ExplicitComponent):
 
         Q = inputs['Q']
         K_glob = inputs['K_glob']
-        K_modal = Q[:,:nMode].T @ K_glob @ Q[:,:nMode]
+        K_modal = Q.T @ K_glob @ Q
         
         outputs['K_modal'] = K_modal
 

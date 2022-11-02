@@ -15,6 +15,7 @@ from modeshape_eigmatrix import ModeshapeEigmatrix
 from eigenproblem_nelson import EigenproblemNelson
 
 from eigenproblem import Eigenproblem
+from modal_reduction import ModalReduction
 from modeshape_eig_select import ModeshapeEigSelect
 
 from eigen_to_mode_group import Eig2Mode
@@ -22,7 +23,7 @@ from eigen_to_mode_group import Eig2Mode
 from modal_mass import ModalMass
 from modal_stiffness import ModalStiffness
 
-class Modeshape(om.Group):
+class FEM(om.Group):
 
     def initialize(self):
         self.options.declare('nodal_data', types=dict)
@@ -68,15 +69,17 @@ class Modeshape(om.Group):
         self.add_subsystem('eigenproblem',
             Eigenproblem(nodal_data=nodal_data),
             promotes_inputs=['Mr_glob', 'Kr_glob'],
+            promotes_outputs=['Q_full', 'eig_freqs_full'])
+
+        self.add_subsystem('reduce_modes',
+            ModalReduction(nodal_data=nodal_data),
+            promotes_inputs=['Q_full', 'eig_freqs_full'],
             promotes_outputs=['Q', 'eig_freqs'])
 
-        # for m in range(1,nodal_data['nMode']+1):
-        #     n = m-1
-        #     self.connect
-        #     self.add_subsystem('modeshape_%d' % m,
-        #         Eig2Mode(mode=m,nodal_data=nodal_data),
-        #         promotes_inputs=['eig_vector', 'x_beamnode', 'y_beamnode', 'z_beamnode'],
-        #         promotes_outputs=['x_beamnode_%d' % i, 'x_d_beamnode_%d' % i, 'x_beamelem_%d' % i, 'x_d_beamelem_%d' % i, 'x_dd_beamelem_%d' % i])
+        self.add_subsystem('modeshapes',
+            Eig2Mode(nodal_data=nodal_data),
+            promotes_inputs=['Q', 'x_beamnode', 'y_beamnode', 'z_beamnode'],
+            promotes_outputs=['x_nodes', 'y_nodes', 'z_nodes'])
         
         self.add_subsystem('modal_mass', 
             ModalMass(nodal_data=nodal_data), 
