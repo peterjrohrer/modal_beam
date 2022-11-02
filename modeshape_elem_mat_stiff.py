@@ -51,14 +51,14 @@ class ModeshapeElemMatStiff(om.ExplicitComponent):
         kel_mat = np.zeros((nElem, 12, 12))
         Kem = np.zeros((nElem, 12, 12))
         for i in range(nElem):
-            a = EA / L_beam[i]
-            b = 12. * EIz / L_beam[i] ** 3.
-            c = 6. * EIz / L_beam[i] ** 2.
-            d = 12. * EIy / L_beam[i] ** 3.
-            e = 6. * EIy / L_beam[i] ** 2.
-            f = myconst.G_STL * Kv / L_beam[i]
-            g = 2. * EIy / L_beam[i]
-            h = 2. * EIz / L_beam[i]
+            a = EA[i] / L_beam[i]
+            b = 12. * EIz[i] / L_beam[i] ** 3.
+            c = 6. * EIz[i] / L_beam[i] ** 2.
+            d = 12. * EIy[i] / L_beam[i] ** 3.
+            e = 6. * EIy[i] / L_beam[i] ** 2.
+            f = myconst.G_STL * Kv[i] / L_beam[i]
+            g = 2. * EIy[i] / L_beam[i]
+            h = 2. * EIz[i] / L_beam[i]
 
             kel_mat[i,0,0] = kel_mat[i,6,6] = a
             kel_mat[i,1,1] = kel_mat[i,7,7] = b

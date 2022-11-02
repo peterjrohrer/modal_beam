@@ -66,28 +66,24 @@ class Modeshape(om.Group):
             promotes_outputs=['Mr_glob', 'Kr_glob'])
 
         self.add_subsystem('eigenproblem',
-            Eigenproblem(),
+            Eigenproblem(nodal_data=nodal_data),
             promotes_inputs=['Mr_glob', 'Kr_glob'],
             promotes_outputs=['Q', 'eig_freqs'])
 
-        self.add_subsystem('modeshape_eig_select', 
-            ModeshapeEigSelect(nodal_data=nodal_data),
-            promotes_inputs=['eig_vectors', 'eig_vals'], 
-            promotes_outputs=['eig_vector_1', 'eig_freq_1', 'eig_vector_2', 'eig_freq_2', 'eig_vector_3', 'eig_freq_3'])
-
-        numModes = 3
-        for i in range(1,numModes+1):
-            self.add_subsystem('modeshape_%d' % i,
-                Eig2Mode(mode=i,nodal_data=nodal_data),
-                promotes_inputs=['eig_vector_1', 'eig_vector_2', 'eig_vector_3', 'z_beamnode', 'z_beamelem'],
-                promotes_outputs=['x_beamnode_%d' % i, 'x_d_beamnode_%d' % i, 'x_beamelem_%d' % i, 'x_d_beamelem_%d' % i, 'x_dd_beamelem_%d' % i])
+        # for m in range(1,nodal_data['nMode']+1):
+        #     n = m-1
+        #     self.connect
+        #     self.add_subsystem('modeshape_%d' % m,
+        #         Eig2Mode(mode=m,nodal_data=nodal_data),
+        #         promotes_inputs=['eig_vector', 'x_beamnode', 'y_beamnode', 'z_beamnode'],
+        #         promotes_outputs=['x_beamnode_%d' % i, 'x_d_beamnode_%d' % i, 'x_beamelem_%d' % i, 'x_d_beamelem_%d' % i, 'x_dd_beamelem_%d' % i])
         
         self.add_subsystem('modal_mass', 
             ModalMass(nodal_data=nodal_data), 
-            promotes_inputs=['M_beam', 'x_beamelem_*'], 
-            promotes_outputs=['M11', 'M12', 'M13', 'M22', 'M23', 'M33'])
+            promotes_inputs=['Q', 'M_glob'], 
+            promotes_outputs=['M_modal'])
 
         self.add_subsystem('modal_stiffness', 
             ModalStiffness(nodal_data=nodal_data), 
-            promotes_inputs=['L_beam', 'x_d_beamelem_*', 'x_dd_beamelem_*', 'normforce_mode_elem', 'EI_mode_elem'], 
-            promotes_outputs=['K11', 'K12', 'K13', 'K22', 'K23', 'K33']) 
+            promotes_inputs=['Q', 'K_glob'], 
+            promotes_outputs=['K_modal']) 

@@ -10,17 +10,19 @@ class Eigenproblem(om.ExplicitComponent):
 
     def setup(self):
         self.nodal_data = self.options['nodal_data']
-        nDOF = self.nodal_data['nDOF_r']
+        nDOF_r = self.nodal_data['nDOF_r']
+        nDOF_tot = self.nodal_data['nDOF_tot']
 
-        self.add_input('Mr_glob', val=np.ones((nDOF, nDOF)), units='kg')
-        self.add_input('Kr_glob', val=np.ones((nDOF, nDOF)), units='N/m')
+        self.add_input('Mr_glob', val=np.ones((nDOF_r, nDOF_r)), units='kg')
+        self.add_input('Kr_glob', val=np.ones((nDOF_r, nDOF_r)), units='N/m')
 
-        self.add_output('Q', val=np.ones((nDOF, nDOF)))
-        self.add_output('eig_freqs', val=np.eye(nDOF), units='1/s')
+        self.add_output('Q', val=np.ones((nDOF_tot, nDOF_r)))
+        self.add_output('eig_freqs', val=np.zeros(nDOF_r), units='1/s')
 
-    def setup_partials(self):
-        self.declare_partials('Qr', ['Mr_glob', 'Kr_glob'])
-        self.declare_partials('eig_freqs', ['Mr_glob', 'Kr_glob'])
+
+    # def setup_partials(self):
+    #     self.declare_partials('Q', ['Mr_glob', 'Kr_glob'])
+    #     self.declare_partials('eig_freqs', ['Mr_glob', 'Kr_glob'])
 
     def compute(self, inputs, outputs):
         nDOF = self.nodal_data['nDOF_r']
@@ -28,18 +30,28 @@ class Eigenproblem(om.ExplicitComponent):
         K = inputs['Kr_glob']
         M = inputs['Mr_glob']
 
-        D, Q = scipy.linalg.eig(M,K, left=False, right=True) # To match He (2022) paper - note must invert eigenvalues to get to natural frequencies
-       
+        # --- To match He (2022) paper - note must invert eigenvalues to get to natural frequencies
+        # D, Q = scipy.linalg.eig(M,K, left=False, right=True) 
         # Normalize eigenvectors with M matrix
-        Q_og = Q # preserve original eigvectors
-        for j in range(nDOF):
-            norm_fac = np.sqrt(1./(Q[:,j].T @ M @ Q[:,j]))
-            if not np.isnan(norm_fac) : # To avoid ending up with an entire eigenvector of NaNs 
-                Q[:,j] = norm_fac * Q[:,j]
+        # Q_og = Q # preserve original eigvectors
+        # for j in range(nDOF):
+        #     norm_fac = np.sqrt(1./(Q[:,j].T @ M @ Q[:,j]))
+        #     if not np.isnan(norm_fac) : # To avoid ending up with an entire eigenvector of NaNs 
+        #         Q[:,j] = norm_fac * Q[:,j]
+        # lambdaDiag = 1. / np.real(D) # Note lambda might have off diagonal values due to numerics
+
+        D, Q = scipy.linalg.eig(K,M)
+        Q_og = Q
+        # Normalize eigenvectors
+        for j in range(M.shape[1]):
+            q_j = Q[:,j]
+            modalmass_j = np.dot(q_j.T,M).dot(q_j)
+            Q[:,j]= Q[:,j]/np.sqrt(modalmass_j)
 
         # Sort and diagonalize
-        Lambda= 1. / (np.dot(Q.T,K).dot(Q)) # inversion because of Eigenproblem definition
-        lambdaDiag=np.diag(Lambda) # Note lambda might have off diagonal values due to numerics
+        Lambda = (np.dot(Q.T,K).dot(Q)) 
+        # inversion because of Eigenproblem definition
+        lambdaDiag = np.diag(Lambda) # Note lambda might have off diagonal values due to numerics
         I = np.argsort(lambdaDiag)
         Q = Q[:,I]
         lambdaDiag = lambdaDiag[I]
@@ -59,7 +71,7 @@ class Eigenproblem(om.ExplicitComponent):
 
         self.vecs = Q
         self.vecs_unsc = Q_og
-        self.vals = np.diag(Lambda) # Must keep complex eigenvalues to have correct derivatives
+        self.vals = D # Must keep complex eigenvalues to have correct derivatives
         
         # --- Sanitization, ensure real values (for export, not for derivatives!)
         Q_im = np.imag(Q)

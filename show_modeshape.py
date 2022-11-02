@@ -1,5 +1,6 @@
 #%% Run as Notebook
 import numpy as np
+import scipy.linalg
 import openmdao.api as om
 import myconstants as myconst
 import os
@@ -13,7 +14,7 @@ from cantilever_group import Cantilever
 # Bring in problem with defined defaults
 prob = om.Problem()
 
-nElem = 11
+nElem = 10
 nNode = nElem + 1
 nDOFperNode =  6
 nNodeperElem =  2
@@ -70,83 +71,86 @@ cantilever_group = Cantilever(nodal_data=nodal_data) # Increased nodes
 # cantilever_group.linear_solver = om.DirectSolver(assemble_jac=True)
 # cantilever_group.nonlinear_solver = om.NonlinearBlockGS(maxiter=100, atol=1e-6, rtol=1e-6, use_aitken=True)
 
+# Set inputs
+prob.model.set_input_defaults('L_beam_tot', val=5., units='m')
+prob.model.set_input_defaults('D_beam', val=0.25*np.ones(nElem), units='m')
+prob.model.set_input_defaults('wt_beam', val=0.01*np.ones(nElem), units='m')
+
 prob.model.add_subsystem('cantilever', 
     cantilever_group, 
     promotes_inputs=['D_beam', 'wt_beam', 'L_beam_tot'],
-    promotes_outputs=['M_global', 'K_global', 'Z_beam', 'L_beam', 'M_beam', 'tot_M_beam',
-        'eig_vector_*', 'eig_freq_*', 'z_beamnode', 'z_beamelem',
-        'x_beamnode_*', 'x_d_beamnode_*', 'x_beamelem_*', 'x_d_beamelem_*', 'x_dd_beamelem_*',])
-
-# Set inputs
-prob.model.set_input_defaults('D_beam', val=0.75*np.ones(nElem), units='m')
-prob.model.set_input_defaults('wt_beam', val=0.15*np.ones(nElem), units='m')
-prob.model.set_input_defaults('L_beam_tot', val=10., units='m')
+    promotes_outputs=['L_beam', 'A_beam', 'Ix_beam', 'Iy_beam', 'M_beam', 'tot_M_beam', 'x_beamnode', 'y_beamnode', 'z_beamnode', 'dir_cosines', 'Q', 'eig_freqs', 'M_modal', 'K_modal'])
 
 # Setup and run problem
 prob.setup(mode='rev', derivatives=True)
 prob.set_solver_print(level=1)
 prob.run_model()
 
-print('Mode 1 Nat. Period: %3.2f s, (freq: %3.3f rad/s, %3.3f Hz)' % (1./float(prob['eig_freq_1']), (2*np.pi*float(prob['eig_freq_1'])), (float(prob['eig_freq_1']))))
-print('Mode 2 Nat. Period: %3.2f s, (freq: %3.3f rad/s, %3.3f Hz)' % (1./float(prob['eig_freq_2']), (2*np.pi*float(prob['eig_freq_2'])), (float(prob['eig_freq_2']))))
-print('Mode 3 Nat. Period: %3.2f s, (freq: %3.3f rad/s, %3.3f Hz)' % (1./float(prob['eig_freq_3']), (2*np.pi*float(prob['eig_freq_3'])), (float(prob['eig_freq_3']))))
+print('----- FROM FINITE ELEMENT MODEL -----')
+print('Mode 1 Nat. Period: %3.3f Hz (%3.3f s)' %((prob['eig_freqs'][0]), (1./prob['eig_freqs'][0])))
+print('Mode 2 Nat. Period: %3.3f Hz (%3.3f s)' %((prob['eig_freqs'][1]), (1./prob['eig_freqs'][1])))
+print('Mode 3 Nat. Period: %3.3f Hz (%3.3f s)' %((prob['eig_freqs'][2]), (1./prob['eig_freqs'][2])))
+print('Mode 4 Nat. Period: %3.3f Hz (%3.3f s)' %((prob['eig_freqs'][3]), (1./prob['eig_freqs'][3])))
+print('Mode 5 Nat. Period: %3.3f Hz (%3.3f s)' %((prob['eig_freqs'][4]), (1./prob['eig_freqs'][4])))
 
 ## --- Check Eigenvals
-M_glob = prob['M_global'] 
-K_glob = prob['K_global']
+M_modal = prob['M_modal'] 
+K_modal = prob['K_modal']
 
-# M_glob_inv = np.linalg.inv(M_glob)
-# eig_mat = np.matmul(M_glob_inv, K_glob)
-# eig_vals_raw, eig_vecs = np.linalg.eig(eig_mat)
-# eig_vals = np.sqrt(np.real(np.sort(eig_vals_raw))) 
-# eig_vecs_xloc = np.linspace(0,1,3)
+eig_vals, eig_vecs = scipy.linalg.eig(K_modal, M_modal)
+modal_freqs = np.sort(np.sqrt(np.real(eig_vals)) /(2*np.pi))
 
-# print('Eigenfrequencies: %3.3f rad/s, %3.3f rad/s, %3.3f rad/s' % (eig_vals[0], eig_vals[1], eig_vals[2]))
+print('----- FROM MODAL MATRICES -----')
+print('Mode 1 Nat. Freq: %3.3f Hz (%3.3f s)' %((modal_freqs[0]),(1./modal_freqs[0])))
+print('Mode 2 Nat. Freq: %3.3f Hz (%3.3f s)' %((modal_freqs[1]),(1./modal_freqs[1])))
+print('Mode 3 Nat. Freq: %3.3f Hz (%3.3f s)' %((modal_freqs[2]),(1./modal_freqs[2])))
+print('Mode 4 Nat. Freq: %3.3f Hz (%3.3f s)' %((modal_freqs[3]),(1./modal_freqs[3])))
+print('Mode 5 Nat. Freq: %3.3f Hz (%3.3f s)' %((modal_freqs[4]),(1./modal_freqs[4])))
 
-## --- Pull out Modeshape
-x_beamnode_1 = prob['x_beamnode_1']
-x_beamnode_2 = prob['x_beamnode_2']
-x_beamnode_3 = prob['x_beamnode_3']
-x_beamelem_1 = prob['x_beamelem_1']
-x_beamelem_2 = prob['x_beamelem_2']
-x_beamelem_3 = prob['x_beamelem_3']
-x_d_beamnode_1 = prob['x_d_beamnode_1']
-x_d_beamnode_2 = prob['x_d_beamnode_2']
-x_d_beamnode_3 = prob['x_d_beamnode_3']
-x_d_beamelem_1 = prob['x_d_beamelem_1']
-x_d_beamelem_2 = prob['x_d_beamelem_2']
-x_d_beamelem_3 = prob['x_d_beamelem_3']
-x_dd_beamelem_1 = prob['x_dd_beamelem_1']
-x_dd_beamelem_2 = prob['x_dd_beamelem_2']
-x_dd_beamelem_3 = prob['x_dd_beamelem_3']
-z_beamnode = prob['z_beamnode']
-z_beamelem = prob['z_beamelem']
+# ## --- Pull out Modeshape
+# x_beamnode_1 = prob['x_beamnode_1']
+# x_beamnode_2 = prob['x_beamnode_2']
+# x_beamnode_3 = prob['x_beamnode_3']
+# x_beamelem_1 = prob['x_beamelem_1']
+# x_beamelem_2 = prob['x_beamelem_2']
+# x_beamelem_3 = prob['x_beamelem_3']
+# x_d_beamnode_1 = prob['x_d_beamnode_1']
+# x_d_beamnode_2 = prob['x_d_beamnode_2']
+# x_d_beamnode_3 = prob['x_d_beamnode_3']
+# x_d_beamelem_1 = prob['x_d_beamelem_1']
+# x_d_beamelem_2 = prob['x_d_beamelem_2']
+# x_d_beamelem_3 = prob['x_d_beamelem_3']
+# x_dd_beamelem_1 = prob['x_dd_beamelem_1']
+# x_dd_beamelem_2 = prob['x_dd_beamelem_2']
+# x_dd_beamelem_3 = prob['x_dd_beamelem_3']
+# z_beamnode = prob['z_beamnode']
+# z_beamelem = prob['z_beamelem']
 
-mode1_freq = (2*np.pi*float(prob['eig_freq_1']))
-mode2_freq = (2*np.pi*float(prob['eig_freq_2']))
-mode3_freq = (2*np.pi*float(prob['eig_freq_3']))
+# mode1_freq = (2*np.pi*float(prob['eig_freq_1']))
+# mode2_freq = (2*np.pi*float(prob['eig_freq_2']))
+# mode3_freq = (2*np.pi*float(prob['eig_freq_3']))
 
-## --- Shapes PLOT from FEA
-font = {'size': 16}
-plt.rc('font', **font)
-fig1, ax1 = plt.subplots(figsize=(12,8))
+# ## --- Shapes PLOT from FEA
+# font = {'size': 16}
+# plt.rc('font', **font)
+# fig1, ax1 = plt.subplots(figsize=(12,8))
 
-# Plot shapes
-shape1 = ax1.plot(z_beamnode, x_beamnode_1, label='1st Mode: %2.2f rad/s' %mode1_freq, c='r', ls='-', marker='.', ms=10, mfc='r', alpha=0.7)
-shape2 = ax1.plot(z_beamnode, x_beamnode_2, label='2nd Mode: %2.2f rad/s' %mode2_freq, c='g', ls='-', marker='.', ms=10, mfc='g', alpha=0.7)
-shape3 = ax1.plot(z_beamnode, x_beamnode_3, label='3rd Mode: %2.2f rad/s' %mode3_freq, c='b', ls='-', marker='.', ms=10, mfc='b', alpha=0.7)
+# # Plot shapes
+# shape1 = ax1.plot(z_beamnode, x_beamnode_1, label='1st Mode: %2.2f rad/s' %mode1_freq, c='r', ls='-', marker='.', ms=10, mfc='r', alpha=0.7)
+# shape2 = ax1.plot(z_beamnode, x_beamnode_2, label='2nd Mode: %2.2f rad/s' %mode2_freq, c='g', ls='-', marker='.', ms=10, mfc='g', alpha=0.7)
+# shape3 = ax1.plot(z_beamnode, x_beamnode_3, label='3rd Mode: %2.2f rad/s' %mode3_freq, c='b', ls='-', marker='.', ms=10, mfc='b', alpha=0.7)
 
-# Set labels and legend
-ax1.legend()
-ax1.set_title('Modeshapes from FEA')
-ax1.set_xlabel('Length (z)')
-ax1.set_ylabel('Deformation (x)')
-ax1.grid()
+# # Set labels and legend
+# ax1.legend()
+# ax1.set_title('Modeshapes from FEA')
+# ax1.set_xlabel('Length (z)')
+# ax1.set_ylabel('Deformation (x)')
+# ax1.grid()
 
 
-# Show sketch
-plt.show()
-plt.tight_layout()
-my_path = os.path.dirname(__file__)
-fname = 'modeshapes'
-plt.savefig(os.path.join(my_path,(fname+'.png')), dpi=400, format='png')
+# # Show sketch
+# plt.show()
+# plt.tight_layout()
+# my_path = os.path.dirname(__file__)
+# fname = 'modeshapes'
+# plt.savefig(os.path.join(my_path,(fname+'.png')), dpi=400, format='png')

@@ -8,6 +8,7 @@ class ModeshapeElemStiff(ExplicitComponent):
 		self.options.declare('nodal_data', types=dict)
 
 	def setup(self):
+		self.nodal_data = self.options['nodal_data']
 		nElem = self.nodal_data['nElem']
 
 		self.add_input('kel_mat', val=np.zeros((nElem,12,12)), units='N/m')
@@ -19,7 +20,7 @@ class ModeshapeElemStiff(ExplicitComponent):
 		self.declare_partials('kel', ['kel_mat', 'kel_geom'])
 
 	def compute(self, inputs, outputs):
-		nElem = self.options['nElem']
+		nElem = self.nodal_data['nElem']
 
 		kem = inputs['kel_mat']
 		keg = inputs['kel_geom']
@@ -27,7 +28,7 @@ class ModeshapeElemStiff(ExplicitComponent):
 		outputs['kel'] += kem + keg
 
 	def compute_partials(self, inputs, partials):
-		nElem = self.options['nElem']
+		nElem = self.nodal_data['nElem']
 		
 		partials['kel', 'kel_mat'] = np.zeros(((nElem * 12 * 12), (nElem * 12 * 12)))
 		partials['kel', 'kel_geom'] = np.zeros(((nElem * 12 * 12), (nElem * 12 * 12)))

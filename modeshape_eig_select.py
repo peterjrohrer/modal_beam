@@ -3,18 +3,17 @@ from openmdao.api import ExplicitComponent
 
 
 class ModeshapeEigSelect(ExplicitComponent):
-    # Select lowest three modeshape eigenvalues (eigen freq) and eigenvectors for bending
+    # Select 10 lowest modeshape eigenvalues (eigen freq) and eigenvectors for bending
 
     def initialize(self):
-        self.options.declare('nNode', types=int)
-        self.options.declare('nElem', types=int)
-        self.options.declare('nDOF', types=int)
+        self.options.declare('nodal_data', types=dict)
 
     def setup(self):
-        nDOF = self.options['nDOF']
+        self.nodal_data = self.options['nodal_data']
+        nDOF = self.options['nDOF_tot']
 
-        self.add_input('eig_vectors', val=np.zeros((nDOF, nDOF)))
-        self.add_input('eig_vals', val=np.zeros((nDOF, nDOF)))
+        self.add_input('Q', val=np.zeros((nDOF, nDOF)))
+        self.add_input('eig_freqs', val=np.zeros((nDOF, nDOF)), units='1/s')
 
         # Setup to export first three eigenvectors
         self.add_output('eig_vector_1', val=np.ones(nDOF), units='m')

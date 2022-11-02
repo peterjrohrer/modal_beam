@@ -17,8 +17,8 @@ class ModeshapeDOFReduce(ExplicitComponent):
         self.add_input('M_glob', val=np.zeros((nDOF_tot, nDOF_tot)), units='kg')
         self.add_input('K_glob', val=np.zeros((nDOF_tot, nDOF_tot)), units='N/m')
     
-        self.add_output('Mr_glob', val=np.zeros((nDOF_tot, nDOF_r)), units='kg')
-        self.add_output('Kr_glob', val=np.zeros((nDOF_tot, nDOF_r)), units='N/m')
+        self.add_output('Mr_glob', val=np.zeros((nDOF_r, nDOF_r)), units='kg')
+        self.add_output('Kr_glob', val=np.zeros((nDOF_r, nDOF_r)), units='N/m')
 
     def setup_partials(self):
         self.declare_partials('*', '*')

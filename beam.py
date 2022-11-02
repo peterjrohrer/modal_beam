@@ -38,7 +38,7 @@ class Beam(om.ExplicitComponent):
         
         D_beam = inputs['D_beam']
         wt_beam = inputs['wt_beam']
-        L_beam_tot = inputs['wt_beam']
+        L_beam_tot = inputs['L_beam_tot']
 
         L_per_elem = L_beam_tot/nElem 
         L_beam = np.ones(nElem)*L_per_elem

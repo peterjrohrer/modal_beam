@@ -12,9 +12,9 @@ class ModeshapeGlobStiff(ExplicitComponent):
         nElem = self.nodal_data['nElem']
         nDOF = self.nodal_data['nDOF_tot']
 
-        self.add_input('kel', val=np.zeros((nElem, 12, 12)), units='kg')
+        self.add_input('kel', val=np.zeros((nElem, 12, 12)), units='N/m')
     
-        self.add_output('K_glob', val=np.zeros((nDOF, nDOF)), units='kg')
+        self.add_output('K_glob', val=np.zeros((nDOF, nDOF)), units='N/m')
 
     def setup_partials(self):
         self.declare_partials('*', '*')

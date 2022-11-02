@@ -36,21 +36,5 @@ class Cantilever(om.Group):
 
         self.add_subsystem('modeshape_group',
             modeshape_group,
-            promotes_inputs=['L_beam', 'A_beam', 'Ix_beam', 'Iy_beam', 'M_beam', 'tot_M_beam', 'x_beamnode', 'y_beamnode', 'z_beamnode', 'dir_cosines'],
-            promotes_outputs=['eig_vector_*', 'eig_freq_*', 'z_beamnode', 'z_beamelem',
-                'x_beamnode_*', 'x_d_beamnode_*', 
-                'x_beamelem_*', 'x_d_beamelem_*', 'x_dd_beamelem_*',
-                'M11', 'M12', 'M13', 'M22', 'M23', 'M33', 
-                'K11', 'K12', 'K13', 'K22', 'K23', 'K33',])
-
-        self.add_subsystem('global_mass',
-            GlobalMass(),
-            promotes_inputs=['M11', 'M12', 'M13', 'M22', 'M23', 'M33'],
-            promotes_outputs=['M_global'])
-
-        self.add_subsystem('global_stiffness',
-            GlobalStiffness(),
-            promotes_inputs=['K11', 'K12', 'K13', 'K22', 'K23', 'K33'],
-            promotes_outputs=['K_global'])
-
-        
+            promotes_inputs=['L_beam', 'A_beam', 'Ix_beam', 'Iy_beam', 'M_beam', 'dir_cosines'],
+            promotes_outputs=['Q', 'eig_freqs', 'M_modal', 'K_modal'])      
