@@ -6,6 +6,7 @@ from modeshape_elem_mass import ModeshapeElemMass
 from modeshape_elem_mat_stiff import ModeshapeElemMatStiff
 from modeshape_elem_geom_stiff import ModeshapeElemGeomStiff
 from modeshape_elem_stiff import ModeshapeElemStiff
+from modeshape_elem_txform import ModeshapeElemTransform
 from modeshape_glob_mass import ModeshapeGlobMass
 from modeshape_glob_stiff import ModeshapeGlobStiff
 from modeshape_dof_reduce import ModeshapeDOFReduce
@@ -33,23 +34,28 @@ class FEM(om.Group):
 
         self.add_subsystem('modeshape_elem_mass', 
             ModeshapeElemMass(nodal_data=nodal_data), 
-            promotes_inputs=['L_beam', 'A_beam', 'Ix_beam', 'M_beam', 'dir_cosines'], 
-            promotes_outputs=['mel'])
+            promotes_inputs=['L_beam', 'A_beam', 'Ix_beam', 'M_beam'], 
+            promotes_outputs=['mel_loc'])
 
         self.add_subsystem('modeshape_elem_mat_stiff', 
             ModeshapeElemMatStiff(nodal_data=nodal_data), 
-            promotes_inputs=['L_beam', 'A_beam', 'Iy_beam', 'dir_cosines'], 
+            promotes_inputs=['L_beam', 'A_beam', 'Iy_beam', 'Iz_beam'], 
             promotes_outputs=['kel_mat'])
 
         self.add_subsystem('modeshape_elem_geom_stiff', 
             ModeshapeElemGeomStiff(nodal_data=nodal_data), 
-            promotes_inputs=['L_beam', 'P_beam', 'dir_cosines'], 
+            promotes_inputs=['L_beam', 'P_beam'], 
             promotes_outputs=['kel_geom'])
         
         self.add_subsystem('modeshape_elem_stiff', 
             ModeshapeElemStiff(nodal_data=nodal_data), 
             promotes_inputs=['kel_mat', 'kel_geom'], 
-            promotes_outputs=['kel'])
+            promotes_outputs=['kel_loc'])
+
+        self.add_subsystem('modeshape_elem_txform',
+            ModeshapeElemTransform(nodal_data=nodal_data),
+            promotes_inputs=['mel_loc', 'kel_loc', 'dir_cosines'],
+            promotes_outputs=['mel', 'kel'])
 
         self.add_subsystem('modeshape_glob_mass', 
             ModeshapeGlobMass(nodal_data=nodal_data), 
