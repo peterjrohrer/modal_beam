@@ -20,11 +20,9 @@ class ModeshapeElemGeomStiff(om.ExplicitComponent):
 
     def setup_partials(self):
         nElem = self.nodal_data['nElem']
-
         Hcols = np.repeat(np.arange(nElem),(12*12))
 
         self.declare_partials('kel_geom', ['L_beam', 'P_beam'], rows=np.arange(nElem*12*12), cols=Hcols)
-
 
     def compute(self, inputs, outputs):
         nElem = self.nodal_data['nElem']

@@ -1,6 +1,7 @@
 import numpy as np
 import scipy
 import openmdao.api as om
+from modeshape_block_rotation import ModeshapeBlockRotation
 
 from modeshape_elem_mass import ModeshapeElemMass
 from modeshape_elem_mat_stiff import ModeshapeElemMatStiff
@@ -51,10 +52,15 @@ class FEM(om.Group):
             ModeshapeElemStiff(nodal_data=nodal_data), 
             promotes_inputs=['kel_mat', 'kel_geom'], 
             promotes_outputs=['kel_loc'])
+        
+        self.add_subsystem('modeshape_block_rotation',
+            ModeshapeBlockRotation(nodal_data=nodal_data),
+            promotes_inputs=['dir_cosines'],
+            promotes_outputs=['block_rot_mat'])
 
         self.add_subsystem('modeshape_elem_txform',
             ModeshapeElemTransform(nodal_data=nodal_data),
-            promotes_inputs=['mel_loc', 'kel_loc', 'dir_cosines'],
+            promotes_inputs=['mel_loc', 'kel_loc', 'block_rot_mat'],
             promotes_outputs=['mel', 'kel'])
 
         self.add_subsystem('modeshape_glob_mass', 

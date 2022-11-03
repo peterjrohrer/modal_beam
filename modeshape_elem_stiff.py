@@ -17,18 +17,17 @@ class ModeshapeElemStiff(ExplicitComponent):
 		self.add_output('kel_loc', val=np.zeros((nElem,12,12)), units='N/m')
 
 	def setup_partials(self):
-		self.declare_partials('kel_loc', ['kel_mat', 'kel_geom'])
+		nElem = self.nodal_data['nElem']
+		nPart = nElem * 12 * 12
+
+		self.declare_partials('kel_loc', ['kel_mat', 'kel_geom'], rows=np.arange(nPart), cols=np.arange(nPart))
 
 	def compute(self, inputs, outputs):
-		nElem = self.nodal_data['nElem']
-
-		kem = inputs['kel_mat']
-		keg = inputs['kel_geom']
-
-		outputs['kel_loc'] += kem + keg
+		outputs['kel_loc'] = inputs['kel_mat'] + inputs['kel_geom']
 
 	def compute_partials(self, inputs, partials):
 		nElem = self.nodal_data['nElem']
+		nPart = nElem * 12 * 12
 		
-		partials['kel_loc', 'kel_mat'] = np.zeros(((nElem * 12 * 12), (nElem * 12 * 12)))
-		partials['kel_loc', 'kel_geom'] = np.zeros(((nElem * 12 * 12), (nElem * 12 * 12)))
+		partials['kel_loc', 'kel_mat'] = np.ones(nPart)
+		partials['kel_loc', 'kel_geom'] = np.ones(nPart)
