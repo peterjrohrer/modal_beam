@@ -12,7 +12,6 @@ class ModeshapeDOFReduce(ExplicitComponent):
         self.nodal_data = self.options['nodal_data']
         nDOF_tot = self.nodal_data['nDOF_tot']
         nDOF_r = self.nodal_data['nDOF_r']
-        Tr = self.nodal_data['Tr']
 
         self.add_input('M_glob', val=np.zeros((nDOF_tot, nDOF_tot)), units='kg')
         self.add_input('K_glob', val=np.zeros((nDOF_tot, nDOF_tot)), units='N/m')
@@ -23,7 +22,6 @@ class ModeshapeDOFReduce(ExplicitComponent):
     def setup_partials(self):
         nDOF_tot = self.nodal_data['nDOF_tot']
         nDOF_r = self.nodal_data['nDOF_r']
-        Tr = self.nodal_data['Tr']
         
         Hrows = np.arange(nDOF_r * nDOF_r)
         Hcols = np.arange(nDOF_tot * nDOF_tot)

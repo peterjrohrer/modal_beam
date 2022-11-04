@@ -19,7 +19,20 @@ class ModalReduction(ExplicitComponent):
         self.add_output('eig_freqs', val=np.zeros(nMode), units='1/s')
 
     def setup_partials(self):
-        self.declare_partials('*', '*')
+        nDOF_tot = self.nodal_data['nDOF_tot']
+        nDOF_r = self.nodal_data['nDOF_r']
+        nMode = self.nodal_data['nMode']
+        
+        Hrows = np.arange(nDOF_tot * nMode)
+        Hcols = np.arange(nDOF_tot * nDOF_r)
+        cols_idx = np.setdiff1d(np.arange(nDOF_r),np.arange(nMode))
+
+        for i in range(nDOF_tot):
+            removed_cols = (i*nDOF_r) + cols_idx
+            Hcols = np.setdiff1d(Hcols,removed_cols)
+
+        self.declare_partials('Q', 'Q_full', rows=Hrows, cols=Hcols)
+        self.declare_partials('eig_freqs', 'eig_freqs_full', rows=np.arange(nMode), cols=np.arange(nMode))
 
     def compute(self, inputs, outputs):
         nMode = self.nodal_data['nMode']
@@ -28,7 +41,8 @@ class ModalReduction(ExplicitComponent):
         outputs['eig_freqs'] = inputs['eig_freqs_full'][:nMode]
 
     def compute_partials(self, inputs, partials):
-        nElem = self.nodal_data['nElem']
         nDOF_tot = self.nodal_data['nDOF_tot']
-        nDOF_r = self.nodal_data['nDOF_r']
-        Tr = self.nodal_data['Tr']
+        nMode = self.nodal_data['nMode']
+
+        partials['Q', 'Q_full'] = np.ones(nDOF_tot * nMode)        
+        partials['eig_freqs', 'eig_freqs_full'] = np.ones(nMode)        

@@ -36,7 +36,26 @@ class ModalStiffness(ExplicitComponent):
         outputs['K_modal'] = K_modal
 
     def compute_partials(self, inputs, partials):
+        nDOF_tot = self.nodal_data['nDOF_tot']
         nMode = self.nodal_data['nMode']
 
         Q = inputs['Q']
         K_glob = inputs['K_glob']
+
+        partials['K_modal', 'K_glob'] = np.kron(Q.T,Q.T)
+
+        # --- Somewhat hacky solution         
+        partials['K_modal', 'Q'] = np.kron((K_glob@Q).T,np.eye(nMode))
+        rows = []
+        for i in range(nMode):
+            row = []
+            for j in range(nDOF_tot):
+                block = np.zeros((nMode,nMode))
+                E = np.zeros_like(Q)
+                E[j,i] += 1.
+                block += (Q.T @ K_glob @ E)
+                row.append(block)
+            row_concat = np.concatenate(row,axis=1)
+            rows.append(row_concat)
+        blocked = np.concatenate(rows,axis=0)
+        partials['K_modal', 'Q'] += blocked
