@@ -4,7 +4,7 @@ import openmdao.api as om
 from choose_eig_vec import ChooseEigVec
 
 from modeshape_disp import ModeshapeDisp
-from beam_node_1_lhs import BeamNode1LHS
+from beam_node_lhs import BeamNodeLHS
 from beam_node_1_rhs import BeamNode1RHS
 from beam_node_1_deriv import BeamNode1Deriv
 
@@ -27,14 +27,14 @@ class Eig2Mode(om.Group):
             promotes_inputs=['Q', 'x_beamnode', 'y_beamnode', 'z_beamnode'], 
             promotes_outputs=['x_nodes', 'y_nodes', 'z_nodes'])
 
-        # self.add_subsystem('beam_node_1_lhs', 
-        #     BeamNode1LHS(nNode=nNode,nElem=nElem,nDOF=nDOF), 
-        #     promotes_inputs=['z_beamnode'], 
+        # self.add_subsystem('beam_node_lhs', 
+        #     BeamNodeLHS(nodal_data=nodal_data,key='x'), 
+        #     promotes_inputs=['%s_nodes'], 
         #     promotes_outputs=['beam_spline_lhs'])
 
-        # self.add_subsystem('beam_node_1_rhs', 
-        #     BeamNode1RHS(nNode=nNode,nElem=nElem,nDOF=nDOF), 
-        #     promotes_inputs=['z_beamnode', 'x_beamnode'], 
+        # self.add_subsystem('beam_y_node_1_rhs', 
+        #     BeamNode1RHS(nodal_data=nodal_data), 
+        #     promotes_inputs=['x_beamnode', 'x_beamnode'], 
         #     promotes_outputs=['beam_spline_rhs'])
 
         # beam_node_1_deriv = BeamNode1Deriv(nNode=nNode,nElem=nElem,nDOF=nDOF)

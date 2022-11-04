@@ -3,20 +3,23 @@ import numpy as np
 from openmdao.api import ExplicitComponent
 
 
-class BeamNode1LHS(ExplicitComponent):
+class BeamNodeLHS(ExplicitComponent):
     # Lefthand side of beam modeshape linear system
 
     def initialize(self):
-        self.options.declare('nNode', types=int)
-        self.options.declare('nElem', types=int)
-        self.options.declare('nDOF', types=int)
+        self.options.declare('nodal_data', types=dict)
+        self.options.declare('key', types=str)
 
     def setup(self):
-        nNode = self.options['nNode']
+        self.nodal_data = self.options['nodal_data']
+        nNode = self.nodal_data['nNode']
+        nDOF_tot = self.nodal_data['nDOF_tot']
+        nMode = self.nodal_data['nMode']
+        key = self.key = self.options['key']
 
-        self.add_input('z_beamnode', val=np.zeros(nNode), units='m/m')
+        self.add_input('%s_nodes' %key, val=np.zeros((nNode,nMode)), units='m/m')
 
-        self.add_output('beam_spline_lhs', val=np.zeros((nNode, nNode)), units='m/m')
+        self.add_output('beam_%s_spline_lhs' %key, val=np.zeros((nNode, nNode, nMode)), units='m/m')
 
         self.declare_partials('*', '*')
 

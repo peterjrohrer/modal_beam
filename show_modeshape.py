@@ -2,6 +2,7 @@
 import numpy as np
 import scipy.linalg
 import openmdao.api as om
+from openmdao.components.interp_util.interp import InterpND
 import myconstants as myconst
 import os
 
@@ -106,6 +107,14 @@ for n in range(nMode):
 x_nodes = prob['x_nodes']
 y_nodes = prob['y_nodes']
 z_nodes = prob['z_nodes']
+
+## --- Testing splines
+x_node_test = prob['x_nodes'][:,0]
+z_node_test = prob['z_nodes'][:,0]
+
+interp = InterpND(method='cubic', points=x_node_test, values=z_node_test)
+z_d_node_test = interp.spline_gradient(x_node_test)
+
 
 ## --- Shapes Plot from FEA
 font = {'size': 16}

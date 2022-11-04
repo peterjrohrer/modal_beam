@@ -21,9 +21,9 @@ class ModeshapeDisp(ExplicitComponent):
         self.add_input('y_beamnode', val=np.zeros(nNode), units='m')
         self.add_input('z_beamnode', val=np.zeros(nNode), units='m')
 
-        self.add_output('x_nodes', val=np.zeros((nNode,nMode)), units='m')
-        self.add_output('y_nodes', val=np.zeros((nNode,nMode)), units='m')
-        self.add_output('z_nodes', val=np.zeros((nNode,nMode)), units='m')
+        self.add_output('x_nodes', val=np.zeros((nNode,nMode)), units='m/m')
+        self.add_output('y_nodes', val=np.zeros((nNode,nMode)), units='m/m')
+        self.add_output('z_nodes', val=np.zeros((nNode,nMode)), units='m/m')
 
     def setup_partials(self):
         nElem = self.nodal_data['nElem']
