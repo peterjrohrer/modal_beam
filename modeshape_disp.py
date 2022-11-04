@@ -26,11 +26,30 @@ class ModeshapeDisp(ExplicitComponent):
         self.add_output('z_nodes', val=np.zeros((nNode,nMode)), units='m')
 
     def setup_partials(self):
-        self.declare_partials('*', '*')
+        nElem = self.nodal_data['nElem']
+        nNode = self.nodal_data['nNode']
+        nMode = self.nodal_data['nMode']
+        nDOF_tot = self.nodal_data['nDOF_tot']
+
+        Hcols0 = np.arange(nMode)
+        Hcols_x = Hcols_y = Hcols_z = []
+        for i in range(nNode):
+            x_cols = Hcols0 + (6*nMode*i)
+            Hcols_x = np.append(Hcols_x,x_cols)
+            y_cols = Hcols0 + (6*nMode*i) + (nMode)
+            Hcols_y = np.append(Hcols_y,y_cols)
+            z_cols = Hcols0 + (6*nMode*i) + (nMode + nMode)
+            Hcols_z = np.append(Hcols_z,z_cols)
+
+        self.declare_partials('x_nodes', 'Q', rows=np.arange(nNode*nMode), cols=Hcols_x)
+        self.declare_partials('y_nodes', 'Q', rows=np.arange(nNode*nMode), cols=Hcols_y)
+        self.declare_partials('z_nodes', 'Q', rows=np.arange(nNode*nMode), cols=Hcols_z)
+        self.declare_partials('x_nodes', 'x_beamnode', rows=np.arange(nNode*nMode), cols=np.repeat(np.arange(nNode),nMode))
+        self.declare_partials('y_nodes', 'y_beamnode', rows=np.arange(nNode*nMode), cols=np.repeat(np.arange(nNode),nMode))
+        self.declare_partials('z_nodes', 'z_beamnode', rows=np.arange(nNode*nMode), cols=np.repeat(np.arange(nNode),nMode))
 
     def compute(self, inputs, outputs):
         nElem = self.nodal_data['nElem']
-        nDOF_tot = self.nodal_data['nDOF_tot']
         nMode = self.nodal_data['nMode']
         nDOFperNode = self.nodal_data['nDOFperNode']
 
@@ -57,7 +76,13 @@ class ModeshapeDisp(ExplicitComponent):
         outputs['z_nodes'] = z_nodes
 
     def compute_partials(self, inputs, partials):
-        nElem = self.nodal_data['nElem']
-        nDOF_tot = self.nodal_data['nDOF_tot']
+        nNode = self.nodal_data['nNode']
         nMode = self.nodal_data['nMode']
-        nDOFperNode = self.nodal_data['nDOFperNode']
+
+        partials['x_nodes', 'Q'] = np.ones(nNode*nMode)
+        partials['y_nodes', 'Q'] = np.ones(nNode*nMode)
+        partials['z_nodes', 'Q'] = np.ones(nNode*nMode)
+
+        partials['x_nodes', 'x_beamnode'] = np.ones(nNode*nMode)
+        partials['y_nodes', 'y_beamnode'] = np.ones(nNode*nMode)
+        partials['z_nodes', 'z_beamnode'] = np.ones(nNode*nMode)
