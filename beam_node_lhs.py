@@ -16,75 +16,68 @@ class BeamNodeLHS(ExplicitComponent):
         nDOF_tot = self.nodal_data['nDOF_tot']
         nMode = self.nodal_data['nMode']
         key = self.key = self.options['key']
+        self.inp = '%s_nodes' %key
+        self.otp = 'beam_spline_%s_lhs' %key
 
-        self.add_input('%s_nodes' %key, val=np.zeros((nNode,nMode)), units='m/m')
+        self.add_input(self.inp, val=np.zeros((nNode,nMode)), units='m/m')
 
-        self.add_output('beam_%s_spline_lhs' %key, val=np.zeros((nNode, nNode, nMode)), units='m/m')
+        self.add_output(self.otp, val=np.zeros((nNode, nNode, nMode)), units='m/m')
 
         self.declare_partials('*', '*')
 
     def compute(self, inputs, outputs):
-        z = inputs['z_beamnode']
+        nNode = self.nodal_data['nNode']
+        nElem = self.nodal_data['nElem']
+        nMode = self.nodal_data['nMode']
 
-        N_beam = len(z)
+        for m in range(nMode):
+            z = inputs[self.inp][:,m]
+            h = np.zeros(nElem)
 
-        h = np.zeros(N_beam - 1)
-        for i in range(N_beam - 1):
-            h[i] = z[i + 1] - z[i]
+            for i in range(nElem):
+                h[i] = z[i + 1] - z[i]
 
-        outputs['beam_spline_lhs'] = np.zeros((N_beam, N_beam))
+            lhs = np.zeros((nNode, nNode))
 
-        ## --- SparOpt 
-        # Looks like not-a-knot
-        # https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.296.7452&rep=rep1&type=pdf
-        for i in range(1, N_beam - 1):
-            outputs['beam_spline_lhs'][i, i] = 2. * (h[i] + h[i - 1])
-            outputs['beam_spline_lhs'][i, i - 1] = h[i]
-            outputs['beam_spline_lhs'][i, i + 1] = h[i - 1]
+            ## --- Not-a-knot boundary conditions
+            # https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.296.7452&rep=rep1&type=pdf
+            for i in range(1, nElem):
+                lhs[i, i] = 2. * (h[i] + h[i - 1])
+                lhs[i, i - 1] = h[i]
+                lhs[i, i + 1] = h[i - 1]
 
-        outputs['beam_spline_lhs'][0, 0] = h[1]
-        outputs['beam_spline_lhs'][0, 1] = h[0] + h[1]
-        outputs['beam_spline_lhs'][-1, -1] = h[-2]
-        outputs['beam_spline_lhs'][-1, -2] = h[-1] + h[-2]
+            lhs[0, 0] = h[1]
+            lhs[0, 1] = h[0] + h[1]
+            lhs[-1, -1] = h[-2]
+            lhs[-1, -2] = h[-1] + h[-2]
 
-        # ## --- TLPOpt
-        # # Attempting 'natural' from https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.296.7452&rep=rep1&type=pdf
-        # for i in range(1, N_beam - 1):
-        #     outputs['beam_spline_lhs'][i, i] = 2. * (h[i] + h[i - 1])
-        #     outputs['beam_spline_lhs'][i, i - 1] = h[i]
-        #     outputs['beam_spline_lhs'][i, i + 1] = h[i - 1]
-
-        # outputs['beam_spline_lhs'][0, 0] = 2.
-        # outputs['beam_spline_lhs'][0, 1] = 1.
-        # outputs['beam_spline_lhs'][-1, -1] = 2.
-        # outputs['beam_spline_lhs'][-1, -2] = 1.
-
-        # print('lhs done')
+            outputs[self.otp][:,:,m] = lhs
 
     def compute_partials(self, inputs, partials):
-        z = inputs['z_beamnode']
+        nNode = self.nodal_data['nNode']
+        nElem = self.nodal_data['nElem']
+        nMode = self.nodal_data['nMode']
+        
+        partials[self.otp, self.inp] = np.zeros((nNode * nNode * nMode, nNode * nMode))
 
-        N_beam = len(z)
+        for m in range(nMode):
+            lhs_partial = np.zeros((nNode * nNode, nNode))
+            for i in range(1, nElem):
+                lhs_partial[i*nNode-1+i,i] = -1.
+                lhs_partial[i*nNode-1+i,i+1] = 1.
+                lhs_partial[i*nNode+i,i-1] = -2.
+                lhs_partial[i*nNode+i,i] = 0.
+                lhs_partial[i*nNode+i,i+1] = 2.
+                lhs_partial[i*nNode+1+i,i-1] = -1.
+                lhs_partial[i*nNode+1+i,i] = 1.
 
-        partials['beam_spline_lhs', 'z_beamnode'] = np.zeros(
-            (N_beam * N_beam, N_beam))
-
-        for i in range(1, N_beam - 1):
-            partials['beam_spline_lhs', 'z_beamnode'][i*N_beam-1+i,i] = -1.
-            partials['beam_spline_lhs', 'z_beamnode'][i*N_beam-1+i,i+1] = 1.
-
-            partials['beam_spline_lhs', 'z_beamnode'][i*N_beam+i,i-1] = -2.
-            partials['beam_spline_lhs', 'z_beamnode'][i*N_beam+i,i] = 0.
-            partials['beam_spline_lhs', 'z_beamnode'][i*N_beam+i,i+1] = 2.
-
-            partials['beam_spline_lhs', 'z_beamnode'][i*N_beam+1+i,i-1] = -1.
-            partials['beam_spline_lhs', 'z_beamnode'][i*N_beam+1+i,i] = 1.
-
-        partials['beam_spline_lhs', 'z_beamnode'][0, 1] = -1.
-        partials['beam_spline_lhs', 'z_beamnode'][0, 2] = 1.
-        partials['beam_spline_lhs', 'z_beamnode'][1, 0] = -1.
-        partials['beam_spline_lhs', 'z_beamnode'][1, 2] = 1.
-        partials['beam_spline_lhs', 'z_beamnode'][-1, -3] = -1.
-        partials['beam_spline_lhs', 'z_beamnode'][-1, -2] = 1.
-        partials['beam_spline_lhs', 'z_beamnode'][-2, -3] = -1.
-        partials['beam_spline_lhs', 'z_beamnode'][-2, -1] = 1.
+            lhs_partial[0, 1] = -1.
+            lhs_partial[0, 2] = 1.
+            lhs_partial[1, 0] = -1.
+            lhs_partial[1, 2] = 1.
+            lhs_partial[-1, -3] = -1.
+            lhs_partial[-1, -2] = 1.
+            lhs_partial[-2, -3] = -1.
+            lhs_partial[-2, -1] = 1.
+        
+            partials[self.otp, self.inp][:(nNode*nNode),:nNode] += lhs_partial

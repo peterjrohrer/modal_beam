@@ -27,10 +27,10 @@ class Eig2Mode(om.Group):
             promotes_inputs=['Q', 'x_beamnode', 'y_beamnode', 'z_beamnode'], 
             promotes_outputs=['x_nodes', 'y_nodes', 'z_nodes'])
 
-        # self.add_subsystem('beam_node_lhs', 
-        #     BeamNodeLHS(nodal_data=nodal_data,key='x'), 
-        #     promotes_inputs=['%s_nodes'], 
-        #     promotes_outputs=['beam_spline_lhs'])
+        self.add_subsystem('beam_node_lhs', 
+            BeamNodeLHS(nodal_data=nodal_data,key='x'), 
+            promotes_inputs=['%s_nodes' %'x'], 
+            promotes_outputs=['beam_spline_%s_lhs' %'x'])
 
         # self.add_subsystem('beam_y_node_1_rhs', 
         #     BeamNode1RHS(nodal_data=nodal_data), 

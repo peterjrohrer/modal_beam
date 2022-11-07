@@ -82,7 +82,7 @@ prob.setup(mode='rev', derivatives=True, force_alloc_complex=True)
 prob.set_solver_print(level=1)
 prob.run_model()
 
-comp_to_check = 'cantilever.fem_group.modeshape_elem_txform'
+comp_to_check = 'cantilever.fem_group.modeshapes.beam_node_lhs'
 apart_tol = 1.e-5
 rpart_tol = 1.e-6
 
@@ -90,4 +90,4 @@ rpart_tol = 1.e-6
 check_partials_data = prob.check_partials(method='fd',form='forward', includes=comp_to_check, step_calc='rel_avg', step=1e-8, show_only_incorrect=False, compact_print=True)
 # check_partials_data = prob.check_partials(method='cs', includes=comp_to_check, show_only_incorrect=False, compact_print=True)
 
-om.partial_deriv_plot('kel', 'kel_loc', check_partials_data, binary=True)
+om.partial_deriv_plot('beam_spline_x_lhs', 'x_nodes', check_partials_data, binary=True)
