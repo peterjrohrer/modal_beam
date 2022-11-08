@@ -8,7 +8,7 @@ from utils import *
 from cantilever_group import Cantilever
 
 ## --- Processing nodes (can be done outside of optimization!)
-nElem = 10
+nElem = 5
 nNode = nElem + 1
 nDOFperNode =  6
 nNodeperElem =  2
@@ -41,7 +41,7 @@ for i in IDOF_All:
         IBC2Full[k]=i
         k+=1
 
-nMode = 5
+nMode = 3
 nodal_data = {
     'nElem': nElem,
     'nNode': nNode,
@@ -90,4 +90,4 @@ rpart_tol = 1.e-6
 check_partials_data = prob.check_partials(method='fd',form='forward', includes=comp_to_check, step_calc='rel_avg', step=1e-8, show_only_incorrect=False, compact_print=True)
 # check_partials_data = prob.check_partials(method='cs', includes=comp_to_check, show_only_incorrect=False, compact_print=True)
 
-om.partial_deriv_plot('beam_spline_x_lhs', 'x_nodes', check_partials_data, binary=True)
+om.partial_deriv_plot('beam_spline_x_lhs', 'x_nodes', check_partials_data, binary=False)

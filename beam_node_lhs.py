@@ -1,7 +1,5 @@
 import numpy as np
-
 from openmdao.api import ExplicitComponent
-
 
 class BeamNodeLHS(ExplicitComponent):
     # Lefthand side of beam modeshape linear system
@@ -38,7 +36,6 @@ class BeamNodeLHS(ExplicitComponent):
                 h[i] = z[i + 1] - z[i]
 
             lhs = np.zeros((nNode, nNode))
-
             ## --- Not-a-knot boundary conditions
             # https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.296.7452&rep=rep1&type=pdf
             for i in range(1, nElem):
@@ -58,26 +55,25 @@ class BeamNodeLHS(ExplicitComponent):
         nElem = self.nodal_data['nElem']
         nMode = self.nodal_data['nMode']
         
-        partials[self.otp, self.inp] = np.zeros((nNode * nNode * nMode, nNode * nMode))
+        lhs_partial = np.zeros((nNode * nNode, nMode, nNode, nMode))
 
         for m in range(nMode):
-            lhs_partial = np.zeros((nNode * nNode, nNode))
             for i in range(1, nElem):
-                lhs_partial[i*nNode-1+i,i] = -1.
-                lhs_partial[i*nNode-1+i,i+1] = 1.
-                lhs_partial[i*nNode+i,i-1] = -2.
-                lhs_partial[i*nNode+i,i] = 0.
-                lhs_partial[i*nNode+i,i+1] = 2.
-                lhs_partial[i*nNode+1+i,i-1] = -1.
-                lhs_partial[i*nNode+1+i,i] = 1.
+                lhs_partial[(i*nNode)-1+i, m, i, m] = -1.
+                lhs_partial[(i*nNode)-1+i, m, i+1, m] = 1.
+                lhs_partial[(i*nNode)+i, m, i-1, m] = -2.
+                lhs_partial[(i*nNode)+i, m, i, m] = 0.
+                lhs_partial[(i*nNode)+i, m, i+1, m] = 2.
+                lhs_partial[(i*nNode)+1+i, m, i-1, m] = -1.
+                lhs_partial[(i*nNode)+1+i, m, i, m] = 1.
 
-            lhs_partial[0, 1] = -1.
-            lhs_partial[0, 2] = 1.
-            lhs_partial[1, 0] = -1.
-            lhs_partial[1, 2] = 1.
-            lhs_partial[-1, -3] = -1.
-            lhs_partial[-1, -2] = 1.
-            lhs_partial[-2, -3] = -1.
-            lhs_partial[-2, -1] = 1.
-        
-            partials[self.otp, self.inp][:(nNode*nNode),:nNode] += lhs_partial
+            lhs_partial[0, m, 1, m] = -1.
+            lhs_partial[0, m, 2, m] = 1.
+            lhs_partial[1, m, 0, m] = -1.
+            lhs_partial[1, m, 2, m] = 1.
+            lhs_partial[-1, m, -3, m] = -1.
+            lhs_partial[-1, m, -2, m] = 1.
+            lhs_partial[-2, m, -3, m] = -1.
+            lhs_partial[-2, m, -1, m] = 1.
+
+        partials[self.otp, self.inp] = np.reshape(lhs_partial, (nNode * nNode * nMode, nNode * nMode))
