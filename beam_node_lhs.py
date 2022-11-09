@@ -6,20 +6,20 @@ class BeamNodeLHS(ExplicitComponent):
 
     def initialize(self):
         self.options.declare('nodal_data', types=dict)
-        self.options.declare('key', types=str)
+        self.options.declare('absca', types=str) # abscissa or horizontal coordinate
 
     def setup(self):
         self.nodal_data = self.options['nodal_data']
         nNode = self.nodal_data['nNode']
-        nDOF_tot = self.nodal_data['nDOF_tot']
         nMode = self.nodal_data['nMode']
-        key = self.key = self.options['key']
-        self.inp = '%s_nodes' %key
-        self.otp = 'beam_spline_%s_lhs' %key
+        absca = self.absca = self.options['absca']
 
-        self.add_input(self.inp, val=np.zeros((nNode,nMode)), units='m/m')
+        self.inp = '%s_nodes' %absca
+        self.otp = 'beam_spline_%s_lhs' %absca
 
-        self.add_output(self.otp, val=np.zeros((nNode, nNode, nMode)), units='m/m')
+        self.add_input(self.inp, val=np.zeros((nNode,nMode)))
+
+        self.add_output(self.otp, val=np.zeros((nNode, nNode, nMode)))
 
     def setup_partials(self):
         self.declare_partials(self.otp, self.inp)

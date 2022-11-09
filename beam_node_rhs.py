@@ -3,33 +3,34 @@ import numpy as np
 from openmdao.api import ExplicitComponent
 
 
-class BeamNode1RHS(ExplicitComponent):
+class BeamNodeRHS(ExplicitComponent):
     # Righthand side of beam modeshape linear system
 
     def initialize(self):
         self.options.declare('nodal_data', types=dict)
-        self.options.declare('key1', types=str)
-        self.options.declare('key2', types=str)
+        self.options.declare('absca', types=str) # abscissa or horizontal coordinate
+        self.options.declare('ordin', types=str) # ordinate or vertical coordinate
+        self.options.declare('level', types=int) # derivative level
 
     def setup(self):
         self.nodal_data = self.options['nodal_data']
         nNode = self.nodal_data['nNode']
-        nDOF_tot = self.nodal_data['nDOF_tot']
         nMode = self.nodal_data['nMode']
-        key1 = self.key1 = self.options['key1']
-        key2 = self.key2 = self.options['key2']
-        self.inp1 = '%s_nodes' %key1
-        self.inp2 = '%s_nodes' %key2
-        self.otp = 'beam_spline_%s_1_rhs' %key2
+        absca = self.absca = self.options['absca']
+        ordin = self.ordin = self.options['ordin']
 
-        self.add_input(self.inp1, val=np.zeros((nNode,nMode)), units='m/m')
-        self.add_input(self.inp2, val=np.zeros((nNode,nMode)), units='m/m')
+        self.inp_a = '%s_nodes' %absca
+        self.inp_o = '%s_nodes' %ordin
+        self.otp = 'beam_spline_%s_%s_rhs' %(ordin, self.options['level'])
 
-        self.add_output(self.otp, val=np.zeros((nNode, nMode)), units='m/m')
+        self.add_input(self.inp_a, val=np.zeros((nNode,nMode)))
+        self.add_input(self.inp_o, val=np.zeros((nNode,nMode)))
+
+        self.add_output(self.otp, val=np.zeros((nNode, nMode)))
 
     def setup_partials(self):
-        self.declare_partials(self.otp, self.inp1)
-        self.declare_partials(self.otp, self.inp2)
+        self.declare_partials(self.otp, self.inp_a)
+        self.declare_partials(self.otp, self.inp_o)
 
     def compute(self, inputs, outputs):
         nNode = self.nodal_data['nNode']
@@ -37,8 +38,8 @@ class BeamNode1RHS(ExplicitComponent):
         nMode = self.nodal_data['nMode']
 
         for m in range(nMode):
-            x = inputs[self.inp1][:,m]
-            z = inputs[self.inp2][:,m]
+            x = inputs[self.inp_a][:,m]
+            z = inputs[self.inp_o][:,m]
 
             h = np.zeros(nElem)
             delta = np.zeros(nElem)
@@ -66,8 +67,8 @@ class BeamNode1RHS(ExplicitComponent):
         rhs_partial2 = np.zeros((nNode, nMode, nNode, nMode))
 
         for m in range(nMode):
-            x = inputs[self.inp1][:,m]
-            z = inputs[self.inp2][:,m]
+            x = inputs[self.inp_a][:,m]
+            z = inputs[self.inp_o][:,m]
 
             h = np.zeros(nElem)
             delta = np.zeros(nElem)
@@ -100,5 +101,5 @@ class BeamNode1RHS(ExplicitComponent):
             rhs_partial1[-1, m, -2, m] = -(2. * h[-2] + 3 * h[-1]) * h[-2] / (h[-1] + h[-2]) * 1. / h[-1] + h[-1]**2. / (h[-1] + h[-2]) * 1. / h[-2]
             rhs_partial1[-1, m, -3, m] = -h[-1]**2. / (h[-1] + h[-2]) * 1. / h[-2]
 
-        partials[self.otp, self.inp1] = np.reshape(rhs_partial1, (nNode * nMode, nNode * nMode))
-        partials[self.otp, self.inp2] = np.reshape(rhs_partial2, (nNode * nMode, nNode * nMode))
+        partials[self.otp, self.inp_a] = np.reshape(rhs_partial1, (nNode * nMode, nNode * nMode))
+        partials[self.otp, self.inp_o] = np.reshape(rhs_partial2, (nNode * nMode, nNode * nMode))
