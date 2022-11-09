@@ -12,7 +12,7 @@ from utils import *
 from cantilever_group import Cantilever
 
 ## --- Processing nodes (can be done outside of optimization!)
-nElem = 10
+nElem = 20
 nNode = nElem + 1
 nDOFperNode =  6
 nNodeperElem =  2
@@ -79,7 +79,7 @@ prob.model.set_input_defaults('wt_beam', val=0.01*np.ones(nElem), units='m')
 prob.model.add_subsystem('cantilever', 
     cantilever_group, 
     promotes_inputs=['D_beam', 'wt_beam', 'L_beam_tot'],
-    promotes_outputs=['L_beam', 'A_beam', 'Ix_beam', 'Iy_beam', 'M_beam', 'x_beamnode', 'y_beamnode', 'z_beamnode', 'dir_cosines', 'Q', 'eig_freqs', 'x_nodes', 'y_nodes', 'z_nodes', 'M_modal', 'K_modal'])
+    promotes_outputs=['L_beam', 'A_beam', 'Ix_beam', 'Iy_beam', 'M_beam', 'x_beamnode', 'y_beamnode', 'z_beamnode', 'dir_cosines', 'Q', 'eig_freqs', 'x_nodes', 'y_nodes', 'z_nodes', 'y_d_nodes', 'z_d_nodes', 'y_dd_nodes', 'z_dd_nodes', 'M_modal', 'K_modal'])
 
 # Setup and run problem
 prob.setup(mode='rev', derivatives=True)
@@ -107,14 +107,12 @@ for n in range(nMode):
 x_nodes = prob['x_nodes']
 y_nodes = prob['y_nodes']
 z_nodes = prob['z_nodes']
-
-## --- Testing splines
-x_node_test = prob['x_nodes'][:,0]
-z_node_test = prob['z_nodes'][:,0]
-
-interp = InterpND(method='cubic', points=x_node_test, values=z_node_test)
-z_d_node_test = interp.spline_gradient(x_node_test)
-
+# x_d_nodes = prob['x_d_nodes']
+y_d_nodes = prob['y_d_nodes']
+z_d_nodes = prob['z_d_nodes']
+# x_dd_nodes = prob['x_dd_nodes']
+y_dd_nodes = prob['y_dd_nodes']
+z_dd_nodes = prob['z_dd_nodes']
 
 ## --- Shapes Plot from FEA
 font = {'size': 16}

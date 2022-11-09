@@ -91,7 +91,9 @@ class FEM(om.Group):
         self.add_subsystem('modeshapes',
             Eig2Mode(nodal_data=nodal_data),
             promotes_inputs=['Q', 'x_beamnode', 'y_beamnode', 'z_beamnode'],
-            promotes_outputs=['x_nodes', 'y_nodes', 'z_nodes'])
+            promotes_outputs=['x_nodes', 'y_nodes', 'z_nodes',
+                              'y_d_nodes', 'z_d_nodes',
+                              'y_dd_nodes', 'z_dd_nodes'])
         
         self.add_subsystem('modal_mass', 
             ModalMass(nodal_data=nodal_data), 
