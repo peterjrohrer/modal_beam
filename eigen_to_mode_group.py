@@ -32,21 +32,21 @@ class Eig2Mode(om.Group):
             promotes_inputs=['%s_nodes' %'x'], 
             promotes_outputs=['beam_spline_%s_lhs' %'x'])
 
-        # self.add_subsystem('beam_y_node_1_rhs', 
-        #     BeamNode1RHS(nodal_data=nodal_data), 
-        #     promotes_inputs=['x_beamnode', 'x_beamnode'], 
-        #     promotes_outputs=['beam_spline_rhs'])
+        self.add_subsystem('beam_z_node_1_rhs', 
+            BeamNode1RHS(nodal_data=nodal_data,key1='x',key2='z'), 
+            promotes_inputs=['%s_nodes' %'x', '%s_nodes' %'z'], 
+            promotes_outputs=['beam_spline_%s_1_rhs' %'z'])
 
-        # beam_node_1_deriv = BeamNode1Deriv(nNode=nNode,nElem=nElem,nDOF=nDOF)
-        # beam_node_1_deriv.linear_solver = om.ScipyKrylov()
-        # beam_node_1_deriv.linear_solver.precon = om.DirectSolver(assemble_jac=True)
-        # # beam_node_1_deriv.linear_solver = om.DirectSolver(assemble_jac=True)
-        # # beam_node_1_deriv.nonlinear_solver = om.NewtonSolver(solve_subsystems=False)
+        beam_node_1_deriv = BeamNode1Deriv(nodal_data=nodal_data,key1='x',key2='z')
+        beam_node_1_deriv.linear_solver = om.ScipyKrylov()
+        beam_node_1_deriv.linear_solver.precon = om.DirectSolver(assemble_jac=True)
+        # beam_node_1_deriv.linear_solver = om.DirectSolver(assemble_jac=True)
+        # beam_node_1_deriv.nonlinear_solver = om.NewtonSolver(solve_subsystems=False)
 
-        # self.add_subsystem('beam_node_1_deriv', 
-        #     beam_node_1_deriv, 
-        #     promotes_inputs=['beam_spline_lhs', 'beam_spline_rhs'], 
-        #     promotes_outputs=['x_d_beamnode'])
+        self.add_subsystem('beam_z_node_1_deriv', 
+            beam_node_1_deriv, 
+            promotes_inputs=['beam_spline_%s_lhs' %'x', 'beam_spline_%s_1_rhs' %'z'], 
+            promotes_outputs=['%s_d_beamnode' %'z'])
 
         # self.add_subsystem('beam_elem_disp', 
         #     BeamElemDisp(nNode=nNode,nElem=nElem,nDOF=nDOF), 

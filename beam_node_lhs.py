@@ -21,7 +21,8 @@ class BeamNodeLHS(ExplicitComponent):
 
         self.add_output(self.otp, val=np.zeros((nNode, nNode, nMode)), units='m/m')
 
-        self.declare_partials('*', '*')
+    def setup_partials(self):
+        self.declare_partials(self.otp, self.inp)
 
     def compute(self, inputs, outputs):
         nNode = self.nodal_data['nNode']
