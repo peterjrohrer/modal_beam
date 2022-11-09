@@ -15,7 +15,7 @@ class ModeshapeGlobMass(ExplicitComponent):
 
         self.add_input('mel', val=np.zeros((nElem, 12, 12)), units='kg')
     
-        self.add_output('M_glob', val=np.zeros((nDOF, nDOF)), units='kg')
+        self.add_output('M_glob_pre', val=np.zeros((nDOF, nDOF)), units='kg')
 
     def setup_partials(self):
         self.declare_partials('*', '*')
@@ -34,14 +34,14 @@ class ModeshapeGlobMass(ExplicitComponent):
                 for j,jj in enumerate(DOFindex):
                     M_glob[ii,jj] += mel[k,i,j]
 
-        outputs['M_glob'] = M_glob
+        outputs['M_glob_pre'] = M_glob
 
     def compute_partials(self, inputs, partials):
         nElem = self.nodal_data['nElem']
         nDOF = self.nodal_data['nDOF_tot']
         Elem2DOF = self.nodal_data['Elem2DOF']
 
-        partials['M_glob', 'mel'] = np.zeros(((nDOF*nDOF),(nElem*12*12)))
+        partials['M_glob_pre', 'mel'] = np.zeros(((nDOF*nDOF),(nElem*12*12)))
 
         for k in range(nElem):
             DOFindex=Elem2DOF[k,:]
@@ -50,4 +50,4 @@ class ModeshapeGlobMass(ExplicitComponent):
                     glob_idx = (ii*36)+jj
                     loc_idx = (144*k) + (i*12) +j
 
-                    partials['M_glob', 'mel'][glob_idx,loc_idx] += 1
+                    partials['M_glob_pre', 'mel'][glob_idx,loc_idx] += 1

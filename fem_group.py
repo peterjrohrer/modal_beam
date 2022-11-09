@@ -10,15 +10,12 @@ from modeshape_elem_stiff import ModeshapeElemStiff
 from modeshape_elem_txform import ModeshapeElemTransform
 from modeshape_glob_mass import ModeshapeGlobMass
 from modeshape_glob_stiff import ModeshapeGlobStiff
+from modeshape_point_mass import ModeshapePointMass
+from modeshape_point_stiff import ModeshapePointStiff
 from modeshape_dof_reduce import ModeshapeDOFReduce
-
-from modeshape_M_inv import ModeshapeMInv
-from modeshape_eigmatrix import ModeshapeEigmatrix
-from eigenproblem_nelson import EigenproblemNelson
 
 from eigenproblem import Eigenproblem
 from modal_reduction import ModalReduction
-from modeshape_eig_select import ModeshapeEigSelect
 
 from eigen_to_mode_group import Eig2Mode
 
@@ -66,11 +63,21 @@ class FEM(om.Group):
         self.add_subsystem('modeshape_glob_mass', 
             ModeshapeGlobMass(nodal_data=nodal_data), 
             promotes_inputs=['mel'], 
-            promotes_outputs=['M_glob'])
+            promotes_outputs=['M_glob_pre'])
 
         self.add_subsystem('modeshape_glob_stiff', 
             ModeshapeGlobStiff(nodal_data=nodal_data), 
             promotes_inputs=['kel'], 
+            promotes_outputs=['K_glob_pre'])
+
+        self.add_subsystem('modeshape_point_mass',
+            ModeshapePointMass(nodal_data=nodal_data), 
+            promotes_inputs=['M_glob_pre'], 
+            promotes_outputs=['M_glob'])
+
+        self.add_subsystem('modeshape_point_stiff',
+            ModeshapePointStiff(nodal_data=nodal_data), 
+            promotes_inputs=['K_glob_pre'], 
             promotes_outputs=['K_glob'])
 
         self.add_subsystem('modeshape_dof_reduce',

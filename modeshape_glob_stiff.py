@@ -14,7 +14,7 @@ class ModeshapeGlobStiff(ExplicitComponent):
 
         self.add_input('kel', val=np.zeros((nElem, 12, 12)), units='N/m')
     
-        self.add_output('K_glob', val=np.zeros((nDOF, nDOF)), units='N/m')
+        self.add_output('K_glob_pre', val=np.zeros((nDOF, nDOF)), units='N/m')
 
     def setup_partials(self):
         self.declare_partials('*', '*')
@@ -34,14 +34,14 @@ class ModeshapeGlobStiff(ExplicitComponent):
                 for j,jj in enumerate(DOFindex):
                     K_glob[ii,jj] += kel[k,i,j]
 
-        outputs['K_glob'] = K_glob
+        outputs['K_glob_pre'] = K_glob
 
     def compute_partials(self, inputs, partials):
         nElem = self.nodal_data['nElem']
         nDOF = self.nodal_data['nDOF_tot']
         Elem2DOF = self.nodal_data['Elem2DOF']
 
-        partials['K_glob', 'kel'] = np.zeros(((nDOF*nDOF),(nElem*12*12)))
+        partials['K_glob_pre', 'kel'] = np.zeros(((nDOF*nDOF),(nElem*12*12)))
 
         for k in range(nElem):
             DOFindex=Elem2DOF[k,:]
@@ -50,4 +50,4 @@ class ModeshapeGlobStiff(ExplicitComponent):
                     glob_idx = (ii*36)+jj
                     loc_idx = (144*k) + (i*12) +j
 
-                    partials['K_glob', 'kel'][glob_idx,loc_idx] += 1
+                    partials['K_glob_pre', 'kel'][glob_idx,loc_idx] += 1

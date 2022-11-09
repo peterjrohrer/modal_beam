@@ -12,7 +12,7 @@ from utils import *
 from cantilever_group import Cantilever
 
 ## --- Processing nodes (can be done outside of optimization!)
-nElem = 50
+nElem = 10
 nNode = nElem + 1
 nDOFperNode =  6
 nNodeperElem =  2

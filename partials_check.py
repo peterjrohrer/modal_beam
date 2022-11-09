@@ -8,7 +8,7 @@ from utils import *
 from cantilever_group import Cantilever
 
 ## --- Processing nodes (can be done outside of optimization!)
-nElem = 10
+nElem = 50
 nNode = nElem + 1
 nDOFperNode =  6
 nNodeperElem =  2
@@ -82,7 +82,7 @@ prob.setup(mode='rev', derivatives=True, force_alloc_complex=True)
 prob.set_solver_print(level=1)
 prob.run_model()
 
-comp_to_check = 'cantilever.fem_group.modeshapes.beam_z_node_1_deriv'
+comp_to_check = 'cantilever.fem_group.modeshape_point_mass'
 apart_tol = 1.e-5
 rpart_tol = 1.e-6
 
@@ -90,4 +90,4 @@ rpart_tol = 1.e-6
 check_partials_data = prob.check_partials(method='fd',form='forward', includes=comp_to_check, step_calc='rel_avg', step=1e-8, show_only_incorrect=False, compact_print=True)
 # check_partials_data = prob.check_partials(method='cs', includes=comp_to_check, show_only_incorrect=False, compact_print=True)
 
-# om.partial_deriv_plot('z_d_beamnode', 'beam_spline_x_lhs', check_partials_data, binary=True)
+om.partial_deriv_plot('M_glob', 'M_glob_pre', check_partials_data, binary=True)

@@ -1,8 +1,6 @@
 import numpy as np
 import openmdao.api as om
 
-from choose_eig_vec import ChooseEigVec
-
 from modeshape_disp import ModeshapeDisp
 from beam_node_lhs import BeamNodeLHS
 from beam_node_rhs import BeamNodeRHS
@@ -11,8 +9,6 @@ from beam_node_deriv import BeamNodeDeriv
 from beam_elem_disp import BeamElemDisp
 from beam_elem_1_deriv import BeamElem1Deriv
 from beam_elem_2_deriv import BeamElem2Deriv
-
-from modeshape_num import ModeshapeNum
 
 class Eig2Mode(om.Group):
 
@@ -66,21 +62,6 @@ class Eig2Mode(om.Group):
                 beam_y_node_2_deriv, 
                 promotes_inputs=['beam_spline_%s_lhs' %absca, 'beam_spline_%s_2_rhs' %(i)], 
                 promotes_outputs=['%s_dd_nodes' %(i)])
-
-        # self.add_subsystem('beam_z_node_1_rhs', 
-        #     BeamNodeRHS(nodal_data=nodal_data, absca='x', ordin='z', level=1), 
-        #     promotes_inputs=['%s_nodes' %'x', '%s_nodes' %'z'], 
-        #     promotes_outputs=['beam_spline_%s_1_rhs' %'z'])
-
-        # beam_z_node_1_deriv = BeamNodeDeriv(nodal_data=nodal_data, absca='x', ordin='z', level=1)
-        # beam_z_node_1_deriv.linear_solver = om.ScipyKrylov()
-        # beam_z_node_1_deriv.linear_solver.precon = om.DirectSolver(assemble_jac=True)
-        # beam_z_node_1_deriv.nonlinear_solver = om.NewtonSolver(solve_subsystems=False)
-
-        # self.add_subsystem('beam_z_node_1_deriv', 
-        #     beam_z_node_1_deriv, 
-        #     promotes_inputs=['beam_spline_%s_lhs' %'x', 'beam_spline_%s_1_rhs' %'z'], 
-        #     promotes_outputs=['%s_d_nodes' %'z'])
 
         # self.add_subsystem('beam_elem_disp', 
         #     BeamElemDisp(nNode=nNode,nElem=nElem,nDOF=nDOF), 

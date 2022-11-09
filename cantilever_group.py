@@ -5,10 +5,6 @@ from beam import Beam
 from beam_directional_cosines import BeamDirectionalCosines
 from fem_group import FEM
 
-from global_mass import GlobalMass
-from global_stiffness import GlobalStiffness
-
-
 class Cantilever(om.Group):
 
     def initialize(self):
