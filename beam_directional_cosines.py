@@ -66,10 +66,9 @@ class BeamDirectionalCosines(om.ExplicitComponent):
                 e2 = de1/np.linalg.norm(de1) 
             # Third vector
             e3=np.cross(e1.ravel(),e2.ravel()).reshape(3,1)
-            # DCM[i,:,:]= np.column_stack((e1,e2,e3)).T
+            DCM[i,:,:]= np.column_stack((e1,e2,e3)).T
             e1_last= e1
             e2_last= e2
-            DCM[i,:,:]=np.reshape(np.arange(9),(3,3))
         
         outputs['dir_cosines'] = DCM
 

@@ -45,7 +45,8 @@ class BeamNodeRHS(ExplicitComponent):
             delta = np.zeros(nElem)
             for i in range(nElem):
                 h[i] = z[i + 1] - z[i]
-                delta[i] = (x[i + 1] - x[i]) / (z[i + 1] - z[i])
+                if h[i] != 0.:
+                    delta[i] = (x[i + 1] - x[i]) / (z[i + 1] - z[i])
 
             rhs = np.zeros(nNode)
             ## --- Not-a-knot boundary conditions
@@ -53,8 +54,10 @@ class BeamNodeRHS(ExplicitComponent):
             for i in range(1, nElem):
                 rhs[i] = 3. * (h[i - 1] * delta[i] + h[i] * delta[i - 1])
 
-            rhs[0] = ((2. * h[1] + 3. * h[0]) * h[1] * delta[0] + h[0]**2. * delta[1]) / (h[0] + h[1])
-            rhs[-1] = ((2. * h[-2] + 3. * h[-1]) * h[-2] * delta[-1] + h[-1]**2. * delta[-2]) / (h[-1] + h[-2])
+            if (h[0] + h[1]) != 0.:
+                rhs[0] = ((2. * h[1] + 3. * h[0]) * h[1] * delta[0] + h[0]**2. * delta[1]) / (h[0] + h[1])
+            if (h[-1] + h[-2]) != 0.:
+                rhs[-1] = ((2. * h[-2] + 3. * h[-1]) * h[-2] * delta[-1] + h[-1]**2. * delta[-2]) / (h[-1] + h[-2])
             
             outputs[self.otp][:,m] = rhs
 

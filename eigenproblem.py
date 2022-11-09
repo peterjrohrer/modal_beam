@@ -19,7 +19,6 @@ class Eigenproblem(om.ExplicitComponent):
         self.add_output('Q_full', val=np.ones((nDOF_tot, nDOF_r)))
         self.add_output('eig_freqs_full', val=np.zeros(nDOF_r), units='1/s')
 
-
     # def setup_partials(self):
     #     self.declare_partials('Q_full', ['Mr_glob', 'Kr_glob'])
     #     self.declare_partials('eig_freqs_full', ['Mr_glob', 'Kr_glob'])
@@ -39,7 +38,7 @@ class Eigenproblem(om.ExplicitComponent):
         #     if not np.isnan(norm_fac) : # To avoid ending up with an entire eigenvector of NaNs 
         #         Q[:,j] = norm_fac * Q[:,j]
         # lambdaDiag = 1. / np.real(D) # Note lambda might have off diagonal values due to numerics
-
+                
         D, Q = scipy.linalg.eig(K,M)
         Q_og = Q
         # Normalize eigenvectors
@@ -80,13 +79,14 @@ class Eigenproblem(om.ExplicitComponent):
         bb = imm>0
         if sum(bb)>0:
             W=list(np.where(bb)[0])
-            # print('[WARN] Found {:d} complex eigenvectors at positions {}/{}'.format(sum(bb),W,Q.shape[0]))
+            print('[WARN] Found {:d} complex eigenvectors at positions {}/{}'.format(sum(bb),W,Q.shape[0]))
         Lambda = np.real(Lambda)
 
         outputs['Q_full'] = Q
         outputs['eig_freqs_full'] = Lambda
     
         ## Based on He, Jonsson, Martins (2022) - Section C. "Modal Method"
+        ## TODO handle repeated eigenvalues!
         F = np.zeros((nDOF, nDOF), dtype=complex)
         for i in range(nDOF):
             for j in range(nDOF):

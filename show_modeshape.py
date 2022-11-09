@@ -12,7 +12,7 @@ from utils import *
 from cantilever_group import Cantilever
 
 ## --- Processing nodes (can be done outside of optimization!)
-nElem = 20
+nElem = 50
 nNode = nElem + 1
 nDOFperNode =  6
 nNodeperElem =  2
@@ -45,7 +45,7 @@ for i in IDOF_All:
         IBC2Full[k]=i
         k+=1
 
-nMode = 5
+nMode = 10
 nodal_data = {
     'nElem': nElem,
     'nNode': nNode,
@@ -73,8 +73,10 @@ cantilever_group = Cantilever(nodal_data=nodal_data) # Increased nodes
 
 # Set inputs
 prob.model.set_input_defaults('L_beam_tot', val=5., units='m')
-prob.model.set_input_defaults('D_beam', val=0.25*np.ones(nElem), units='m')
-prob.model.set_input_defaults('wt_beam', val=0.01*np.ones(nElem), units='m')
+# prob.model.set_input_defaults('D_beam', val=0.25*np.ones(nElem), units='m')
+# prob.model.set_input_defaults('wt_beam', val=0.01*np.ones(nElem), units='m')
+prob.model.set_input_defaults('D_beam', val=np.linspace(0.5,0.1,nElem), units='m')
+prob.model.set_input_defaults('wt_beam', val=np.linspace(0.02,0.01,nElem), units='m')
 
 prob.model.add_subsystem('cantilever', 
     cantilever_group, 
@@ -114,37 +116,66 @@ z_d_nodes = prob['z_d_nodes']
 y_dd_nodes = prob['y_dd_nodes']
 z_dd_nodes = prob['z_dd_nodes']
 
-## --- Shapes Plot from FEA
+## --- Shapes Plot
 font = {'size': 16}
 plt.rc('font', **font)
-fig1, axs = plt.subplot_mosaic([['ul', '.'], ['ll', 'lr']], figsize=(12, 10), layout="constrained", sharey=True)
+fig1, axs1 = plt.subplot_mosaic([['ul', '.'], ['ll', 'lr']], figsize=(12, 10), layout="constrained", sharey=True)
 
 for i in range(nMode):
-    axs['ul'].plot(x_nodes[:,i], y_nodes[:,i], label='Mode %2d: %2.3f Hz' %((i+1, prob['eig_freqs'][i])), ls='None', marker='o', ms=5)
-    axs['ll'].plot(x_nodes[:,i], z_nodes[:,i], label='Mode %2d: %2.3f Hz' %((i+1, prob['eig_freqs'][i])), ls='None', marker='o', ms=5)
-    axs['lr'].plot(y_nodes[:,i], z_nodes[:,i], label='Mode %2d: %2.3f Hz' %((i+1, prob['eig_freqs'][i])), ls='None', marker='o', ms=5)
+    axs1['ul'].plot(x_nodes[:,i], y_nodes[:,i], label='Mode %2d: %2.3f Hz' %((i+1, prob['eig_freqs'][i])), ls='--', marker='o', ms=5)
+    axs1['ll'].plot(x_nodes[:,i], z_nodes[:,i], label='Mode %2d: %2.3f Hz' %((i+1, prob['eig_freqs'][i])), ls='--', marker='o', ms=5)
+    axs1['lr'].plot(y_nodes[:,i], z_nodes[:,i], label='Mode %2d: %2.3f Hz' %((i+1, prob['eig_freqs'][i])), ls='--', marker='o', ms=5)
 
 # Set labels and legend
-axs['ul'].grid()
-axs['ul'].set_xlim(-0.1,5.1)
-axs['ul'].set_ylabel('Y-displacement')
-axs['ll'].grid()
-axs['ll'].set_xlim(-0.1,5.1)
-axs['ll'].set_xlabel('X-displacement')
-axs['ll'].set_ylabel('Z-displacement')
-# axs['ll'].set_ylim(-1,1.1)
-axs['lr'].grid()
-axs['lr'].set_xlim(-1.1,1.1)
-axs['lr'].set_ylim(-1,1.1)
-axs['lr'].set_xlabel('Y-displacement')
+axs1['ul'].grid()
+axs1['ul'].set_xlim(-0.1,5.1)
+axs1['ul'].set_ylabel('Y-displacement')
+axs1['ll'].grid()
+axs1['ll'].set_xlim(-0.1,5.1)
+axs1['ll'].set_xlabel('X-displacement')
+axs1['ll'].set_ylabel('Z-displacement')
+# axs1['ll'].set_ylim(-1,1.1)
+axs1['lr'].grid()
+axs1['lr'].set_xlim(-1.1,1.1)
+axs1['lr'].set_ylim(-1,1.1)
+axs1['lr'].set_xlabel('Y-displacement')
 
-handles, labels = axs['lr'].get_legend_handles_labels()
+handles, labels = axs1['lr'].get_legend_handles_labels()
 fig1.legend(handles, labels, loc='upper right')
-fig1.suptitle('Modeshapes from FEA')
-
-# Show sketch
-plt.show()
-plt.tight_layout()
+fig1.suptitle('Modeshapes from Modal Model')
 my_path = os.path.dirname(__file__)
 fname = 'modeshapes'
 plt.savefig(os.path.join(my_path,(fname+'.png')), dpi=400, format='png')
+
+## --- Curvatures Plot
+fig2, axs2 = plt.subplot_mosaic([['ul', '.'], ['ll', 'lr']], figsize=(12, 10), layout="constrained", sharey=True)
+
+for i in range(nMode):
+    axs2['ul'].plot(x_nodes[:,i], y_dd_nodes[:,i], label='Mode %2d: %2.3f Hz' %((i+1, prob['eig_freqs'][i])), ls='--', marker='o', ms=5)
+    axs2['ll'].plot(x_nodes[:,i], z_dd_nodes[:,i], label='Mode %2d: %2.3f Hz' %((i+1, prob['eig_freqs'][i])), ls='--', marker='o', ms=5)
+    axs2['lr'].plot(y_dd_nodes[:,i], z_dd_nodes[:,i], label='Mode %2d: %2.3f Hz' %((i+1, prob['eig_freqs'][i])), ls='--', marker='o', ms=5)
+
+# Set labels and legend
+axs2['ul'].grid()
+# axs2['ul'].set_xlim(-0.1,5.1)
+axs2['ul'].set_ylabel('Y-displacement')
+axs2['ll'].grid()
+# axs2['ll'].set_xlim(-0.1,5.1)
+axs2['ll'].set_xlabel('X-displacement')
+axs2['ll'].set_ylabel('Z-displacement')
+# axs2['ll'].set_ylim(-1,1.1)
+axs2['lr'].grid()
+# axs2['lr'].set_xlim(-1.1,1.1)
+# axs2['lr'].set_ylim(-1,1.1)
+axs2['lr'].set_xlabel('Y-displacement')
+
+handles, labels = axs2['ul'].get_legend_handles_labels()
+fig2.legend(handles, labels, loc='upper right')
+fig2.suptitle('Curvatures from Modal Model')
+my_path = os.path.dirname(__file__)
+fname = 'curvatures'
+plt.savefig(os.path.join(my_path,(fname+'.png')), dpi=400, format='png')
+
+# Show plots
+plt.show()
+plt.tight_layout()
