@@ -77,7 +77,7 @@ cantilever_group = Cantilever(nodal_data=nodal_data) # Increased nodes
 prob.model.set_input_defaults('D_beam', val=np.linspace(0.5,0.1,nElem), units='m')
 prob.model.set_input_defaults('wt_beam', val=np.linspace(0.02,0.01,nElem), units='m')
 prob.model.set_input_defaults('L_beam_tot', val=5., units='m')
-prob.model.set_input_defaults('tip_mass', val=10000., units='kg')
+prob.model.set_input_defaults('tip_mass', val=1000., units='kg')
 
 prob.model.add_subsystem('cantilever', 
     cantilever_group, 
