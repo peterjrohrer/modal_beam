@@ -29,8 +29,6 @@ class BeamDirectionalCosines(om.ExplicitComponent):
 
         self.add_output('dir_cosines', val=np.zeros((nElem,3,3)))
 
-        self.declare_partials('*', '*')
-
     def setup_partials(self):
         self.declare_partials('dir_cosines', ['x_beamnode', 'y_beamnode', 'z_beamnode'])
 

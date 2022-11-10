@@ -72,7 +72,7 @@ class FEM(om.Group):
 
         self.add_subsystem('modeshape_point_mass',
             ModeshapePointMass(nodal_data=nodal_data), 
-            promotes_inputs=['M_glob_pre'], 
+            promotes_inputs=['M_glob_pre', 'tip_mass_mat'], 
             promotes_outputs=['M_glob'])
 
         self.add_subsystem('modeshape_point_stiff',

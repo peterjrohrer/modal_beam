@@ -72,15 +72,16 @@ cantilever_group = Cantilever(nodal_data=nodal_data) # Increased nodes
 # cantilever_group.nonlinear_solver = om.NonlinearBlockGS(maxiter=100, atol=1e-6, rtol=1e-6, use_aitken=True)
 
 # Set inputs
-prob.model.set_input_defaults('L_beam_tot', val=5., units='m')
 # prob.model.set_input_defaults('D_beam', val=0.25*np.ones(nElem), units='m')
 # prob.model.set_input_defaults('wt_beam', val=0.01*np.ones(nElem), units='m')
 prob.model.set_input_defaults('D_beam', val=np.linspace(0.5,0.1,nElem), units='m')
 prob.model.set_input_defaults('wt_beam', val=np.linspace(0.02,0.01,nElem), units='m')
+prob.model.set_input_defaults('L_beam_tot', val=5., units='m')
+prob.model.set_input_defaults('tip_mass', val=10000., units='kg')
 
 prob.model.add_subsystem('cantilever', 
     cantilever_group, 
-    promotes_inputs=['D_beam', 'wt_beam', 'L_beam_tot'],
+    promotes_inputs=['D_beam', 'wt_beam', 'L_beam_tot', 'tip_mass'],
     promotes_outputs=['L_beam', 'A_beam', 'Ix_beam', 'Iy_beam', 'M_beam', 'x_beamnode', 'y_beamnode', 'z_beamnode', 'dir_cosines', 'Q', 'eig_freqs', 'x_nodes', 'y_nodes', 'z_nodes', 'y_d_nodes', 'z_d_nodes', 'y_dd_nodes', 'z_dd_nodes', 'M_modal', 'K_modal'])
 
 # Setup and run problem

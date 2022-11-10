@@ -18,7 +18,7 @@ class ModeshapePointStiff(ExplicitComponent):
         nDOF = self.nodal_data['nDOF_tot']
         nPart = nDOF * nDOF
 
-        self.declare_partials('K_glob', 'K_glob_pre', rows=np.arange(nPart), cols=np.arange(nPart))
+        self.declare_partials('K_glob', 'K_glob_pre', rows=np.arange(nPart), cols=np.arange(nPart), val=np.ones(nPart)) # declare a constant, sparse partial here
 
     def compute(self, inputs, outputs):
         IDOF_tip = self.nodal_data['IDOF_tip']
