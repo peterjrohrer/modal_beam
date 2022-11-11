@@ -26,7 +26,7 @@ class TipMass(om.ExplicitComponent):
         self.add_input('ref_to_cog', val=np.zeros(3), units='m')
         self.add_input('tip_inertia', val=np.zeros((3,3)), units='kg*m*m')
 
-        self.add_output('tip_mass_mat', val=np.zeros((6,6)))
+        self.add_output('tip_mass_mat', val=np.zeros((6,6)), units='kg')
 
     def setup_partials(self):
         self.declare_partials('tip_mass_mat', ['tip_mass', 'ref_to_cog', 'tip_inertia'])
