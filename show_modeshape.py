@@ -72,16 +72,26 @@ cantilever_group = Cantilever(nodal_data=nodal_data) # Increased nodes
 # cantilever_group.nonlinear_solver = om.NonlinearBlockGS(maxiter=100, atol=1e-6, rtol=1e-6, use_aitken=True)
 
 # Set inputs
-# prob.model.set_input_defaults('D_beam', val=0.25*np.ones(nElem), units='m')
-# prob.model.set_input_defaults('wt_beam', val=0.01*np.ones(nElem), units='m')
-prob.model.set_input_defaults('D_beam', val=np.linspace(0.5,0.1,nElem), units='m')
-prob.model.set_input_defaults('wt_beam', val=np.linspace(0.02,0.01,nElem), units='m')
+prob.model.set_input_defaults('D_beam', val=0.25*np.ones(nElem), units='m')
+prob.model.set_input_defaults('wt_beam', val=0.01*np.ones(nElem), units='m')
 prob.model.set_input_defaults('L_beam_tot', val=5., units='m')
 prob.model.set_input_defaults('tip_mass', val=1000., units='kg')
+ref2cog = np.zeros(3)
+ref2cog[0] += 0.05
+ref2cog[1] += 0.25
+ref2cog[2] += 0.15
+prob.model.set_input_defaults('ref_to_cog', val=ref2cog, units='m')
+tip_inertia = np.zeros((3,3))
+tip_inertia[0,0] += 10000.
+tip_inertia[1,1] += 10000.
+tip_inertia[0,1] += 5000.
+tip_inertia[0,2] += 3000.
+tip_inertia[1,2] += 8000.
+prob.model.set_input_defaults('tip_inertia', val=tip_inertia, units='kg*m*m')
 
 prob.model.add_subsystem('cantilever', 
     cantilever_group, 
-    promotes_inputs=['D_beam', 'wt_beam', 'L_beam_tot', 'tip_mass'],
+    promotes_inputs=['D_beam', 'wt_beam', 'L_beam_tot', 'tip_mass', 'ref_to_cog', 'tip_inertia'],
     promotes_outputs=['L_beam', 'A_beam', 'Ix_beam', 'Iy_beam', 'M_beam', 'x_beamnode', 'y_beamnode', 'z_beamnode', 'dir_cosines', 'Q', 'eig_freqs', 'x_nodes', 'y_nodes', 'z_nodes', 'y_d_nodes', 'z_d_nodes', 'y_dd_nodes', 'z_dd_nodes', 'M_modal', 'K_modal'])
 
 # Setup and run problem

@@ -91,7 +91,7 @@ prob.model.add_subsystem('cantilever',
     promotes_outputs=['L_beam', 'A_beam', 'Ix_beam', 'Iy_beam', 'M_beam', 'x_beamnode', 'y_beamnode', 'z_beamnode', 'dir_cosines', 'Q', 'eig_freqs', 'x_nodes', 'y_nodes', 'z_nodes', 'M_modal', 'K_modal'])
 
 # Setup and run problem
-prob.setup(mode='rev', derivatives=True, force_alloc_complex=True)
+prob.setup(derivatives=True, force_alloc_complex=True)
 prob.set_solver_print(level=1)
 prob.run_model()
 
