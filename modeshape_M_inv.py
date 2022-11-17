@@ -1,4 +1,5 @@
 import numpy as np
+import scipy.linalg
 from openmdao.api import ExplicitComponent
 
 class ModeshapeMInv(ExplicitComponent):
@@ -19,9 +20,14 @@ class ModeshapeMInv(ExplicitComponent):
         self.declare_partials('Mr_glob_inv', 'Mr_glob')
 
     def compute(self, inputs, outputs):
-        outputs['Mr_glob_inv'] = np.linalg.inv(inputs['Mr_glob'])
+        M = inputs['Mr_glob']
+        M_inv = scipy.linalg.inv(M)
+        # Remove noise from inversion
+        M_inv[M==0.0] = 0.0
+
+        outputs['Mr_glob_inv'] = M_inv        
 
     def compute_partials(self, inputs, partials):
         M = inputs['Mr_glob']
 
-        partials['Mr_glob_inv', 'Mr_glob'] = np.kron(np.linalg.inv(M), -1. * np.linalg.inv(M).T)
+        partials['Mr_glob_inv', 'Mr_glob'] = np.kron(scipy.linalg.inv(M), -1. * scipy.linalg.inv(M).T)

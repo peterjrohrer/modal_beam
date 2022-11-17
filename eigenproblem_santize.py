@@ -12,8 +12,8 @@ class EigenSantize(ExplicitComponent):
         nDOF_r = self.nodal_data['nDOF_r']
         nMode = self.nodal_data['nMode']
 
-        self.add_input('Q_raw', val=np.zeros((nDOF_r, nDOF_r)))
-        self.add_input('eig_freqs_raw', val=np.zeros((nDOF_r, nDOF_r)), units='1/s')
+        self.add_input('Q_mass_norm', val=np.zeros((nDOF_r, nDOF_r)))
+        self.add_input('eigenvals_raw', val=np.zeros((nDOF_r, nDOF_r)), units='1/s')
     
         self.add_output('Q_full', val=np.zeros((nDOF_tot, nDOF_r)))
         self.add_output('eig_freqs_full', val=np.zeros(nDOF_r), units='1/s')
@@ -28,14 +28,8 @@ class EigenSantize(ExplicitComponent):
     def compute(self, inputs, outputs):
         nDOF = self.nodal_data['nDOF_r']
         Tr = self.nodal_data['Tr']
-        Q = inputs['Q_raw']
-        D = inputs['eig_freqs_raw']
-
-        # # Normalize eigenvectors
-        # for j in range(M.shape[1]):
-        #     q_j = Q[:,j]
-        #     modalmass_j = np.dot(q_j.T,M).dot(q_j)
-        #     Q[:,j] = Q[:,j]/np.sqrt(modalmass_j)
+        Q = inputs['Q_mass_norm']
+        D = inputs['eigenvals_raw']
 
         # Sort and diagonalize
         lambdaDiag = np.diag(D)
@@ -45,12 +39,12 @@ class EigenSantize(ExplicitComponent):
         # Export frequencies
         Lambda = np.sqrt(lambdaDiag)/(2*np.pi) # frequencies [Hz]
 
-        # # --- Renormalize modes 
-        # for j in range(Q.shape[1]):
-        #     q_j = Q[:,j]
-        #     iMax = np.argmax(np.abs(q_j))
-        #     scale = q_j[iMax] # not using abs to normalize to "1" and not "+/-1"
-        #     Q[:,j]= Q[:,j]/scale
+        # --- Renormalize modes 
+        for j in range(Q.shape[1]):
+            q_j = Q[:,j]
+            iMax = np.argmax(np.abs(q_j))
+            scale = q_j[iMax] # not using abs to normalize to "1" and not "+/-1"
+            Q[:,j]= Q[:,j]/scale
 
         # --- Add removed DOF back into eigenvectors
         Qr = Q

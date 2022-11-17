@@ -158,35 +158,35 @@ my_path = os.path.dirname(__file__)
 fname = 'modeshapes'
 plt.savefig(os.path.join(my_path,(fname+'.png')), dpi=400, format='png')
 
-## --- Curvatures Plot
-fig2, axs2 = plt.subplot_mosaic([['ul', '.'], ['ll', 'lr']], figsize=(12, 10), layout="constrained", sharey=True)
+# ## --- Curvatures Plot
+# fig2, axs2 = plt.subplot_mosaic([['ul', '.'], ['ll', 'lr']], figsize=(12, 10), layout="constrained", sharey=True)
 
-for i in range(nMode):
-    axs2['ul'].plot(x_nodes[:,i], y_dd_nodes[:,i], label='Mode %2d: %2.3f Hz' %((i+1, prob['eig_freqs'][i])), ls='--', marker='o', ms=5)
-    axs2['ll'].plot(x_nodes[:,i], z_dd_nodes[:,i], label='Mode %2d: %2.3f Hz' %((i+1, prob['eig_freqs'][i])), ls='--', marker='o', ms=5)
-    axs2['lr'].plot(y_dd_nodes[:,i], z_dd_nodes[:,i], label='Mode %2d: %2.3f Hz' %((i+1, prob['eig_freqs'][i])), ls='--', marker='o', ms=5)
+# for i in range(nMode):
+#     axs2['ul'].plot(x_nodes[:,i], y_dd_nodes[:,i], label='Mode %2d: %2.3f Hz' %((i+1, prob['eig_freqs'][i])), ls='--', marker='o', ms=5)
+#     axs2['ll'].plot(x_nodes[:,i], z_dd_nodes[:,i], label='Mode %2d: %2.3f Hz' %((i+1, prob['eig_freqs'][i])), ls='--', marker='o', ms=5)
+#     axs2['lr'].plot(y_dd_nodes[:,i], z_dd_nodes[:,i], label='Mode %2d: %2.3f Hz' %((i+1, prob['eig_freqs'][i])), ls='--', marker='o', ms=5)
 
-# Set labels and legend
-axs2['ul'].grid()
-# axs2['ul'].set_xlim(-0.1,5.1)
-axs2['ul'].set_ylabel('Y-displacement')
-axs2['ll'].grid()
-# axs2['ll'].set_xlim(-0.1,5.1)
-axs2['ll'].set_xlabel('X-displacement')
-axs2['ll'].set_ylabel('Z-displacement')
-# axs2['ll'].set_ylim(-1,1.1)
-axs2['lr'].grid()
-# axs2['lr'].set_xlim(-1.1,1.1)
-# axs2['lr'].set_ylim(-1,1.1)
-axs2['lr'].set_xlabel('Y-displacement')
+# # Set labels and legend
+# axs2['ul'].grid()
+# # axs2['ul'].set_xlim(-0.1,5.1)
+# axs2['ul'].set_ylabel('Y-displacement')
+# axs2['ll'].grid()
+# # axs2['ll'].set_xlim(-0.1,5.1)
+# axs2['ll'].set_xlabel('X-displacement')
+# axs2['ll'].set_ylabel('Z-displacement')
+# # axs2['ll'].set_ylim(-1,1.1)
+# axs2['lr'].grid()
+# # axs2['lr'].set_xlim(-1.1,1.1)
+# # axs2['lr'].set_ylim(-1,1.1)
+# axs2['lr'].set_xlabel('Y-displacement')
 
-handles, labels = axs2['ul'].get_legend_handles_labels()
-fig2.legend(handles, labels, loc='upper right')
-fig2.suptitle('Curvatures from Modal Model')
-my_path = os.path.dirname(__file__)
-fname = 'curvatures'
-plt.savefig(os.path.join(my_path,(fname+'.png')), dpi=400, format='png')
+# handles, labels = axs2['ul'].get_legend_handles_labels()
+# fig2.legend(handles, labels, loc='upper right')
+# fig2.suptitle('Curvatures from Modal Model')
+# my_path = os.path.dirname(__file__)
+# fname = 'curvatures'
+# plt.savefig(os.path.join(my_path,(fname+'.png')), dpi=400, format='png')
 
-# Show plots
-plt.show()
-plt.tight_layout()
+# # Show plots
+# plt.show()
+# plt.tight_layout()

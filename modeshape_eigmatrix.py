@@ -22,7 +22,7 @@ class ModeshapeEigmatrix(ExplicitComponent):
         K = inputs['Kr_glob']
         M_inv = inputs['Mr_glob_inv']
 
-        outputs['Ar_eig'] = np.matmul(M_inv, K)
+        outputs['Ar_eig'] = M_inv @ K
 
     def compute_partials(self, inputs, partials):
         K = inputs['Kr_glob']

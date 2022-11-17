@@ -2,8 +2,8 @@ import numpy as np
 import scipy.linalg
 import openmdao.api as om
 
-class Eigenproblem(om.ExplicitComponent):
-    # Full solution to eigenvalue problem
+class Eigenvecs(om.ExplicitComponent):
+    # Solution to eigenvalue problem with eigenvectors for manipulation
 
     def initialize(self):
         self.options.declare('nodal_data', types=dict)
@@ -16,11 +16,6 @@ class Eigenproblem(om.ExplicitComponent):
         self.add_input('Ar_eig', val=np.ones((nDOF_r, nDOF_r)))
 
         self.add_output('Q_raw', val=np.ones((nDOF_r, nDOF_r)))
-        self.add_output('eig_freqs_raw', val=np.zeros((nDOF_r, nDOF_r)), units='1/s')
-
-    # def setup_partials(self):
-    #     self.declare_partials('Q_raw', ['Mr_glob', 'Kr_glob'])
-    #     self.declare_partials('eig_freqs_raw', ['Mr_glob', 'Kr_glob'])
 
     def compute(self, inputs, outputs):
         nDOF = self.nodal_data['nDOF_r']
@@ -31,7 +26,6 @@ class Eigenproblem(om.ExplicitComponent):
         D, Q = scipy.linalg.eig(a=A, b=None, left=False, right=True)
 
         outputs['Q_raw'] = Q
-        outputs['eig_freqs_raw'] = np.diag(D)
 
         self.Q = Q
         self.D = np.diag(D) # Must keep complex eigenvalues to have correct derivatives    
@@ -62,16 +56,8 @@ class Eigenproblem(om.ExplicitComponent):
             if 'Q_raw' in d_outputs:
                 if 'Ar_eig' in d_inputs:
                     d_inputs['Ar_eig'] += np.real(scipy.linalg.inv(Q).T @ (np.multiply(F, (Q.T @ d_outputs['Q_raw']))) @ Q.T)
-            if 'eig_freqs_raw' in d_outputs:
-                if 'Ar_eig' in d_inputs:
-                    # d_inputs['Ar_eig'] += np.real(scipy.linalg.inv(Q).T @ (d_outputs['eig_freqs_raw']) @ Q.T)
-                    # d_inputs['Ar_eig'] += np.real(scipy.linalg.inv(Q).T @ (d_outputs['eig_freqs_raw'] + np.multiply(F, (Q.T @ d_outputs['Q_raw']))) @ Q.T)
-                    d_inputs['Ar_eig'] += np.real((d_outputs['eig_freqs_raw'] @ np.conj(Q.T) @ np.conj(Q)) * scipy.linalg.inv(np.conj(Q) @ np.conj(Q.T)))
 
         elif mode == 'fwd':
             if 'Q_raw' in d_outputs:
                 if 'Ar_eig' in d_inputs:
                     d_outputs['Q_raw'] += np.real(Q @ np.multiply(F, (np.linalg.inv(Q) @ d_inputs['Ar_eig'] @ Q)))
-            if 'eig_freqs_raw' in d_outputs:
-                if 'Ar_eig' in d_inputs:
-                    d_outputs['eig_freqs_raw'] += np.real(np.multiply(np.eye(nDOF), (np.linalg.inv(Q) @ d_inputs['Ar_eig'] @ Q)))

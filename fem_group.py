@@ -17,6 +17,11 @@ from modeshape_dof_reduce import ModeshapeDOFReduce
 from modeshape_M_inv import ModeshapeMInv
 from modeshape_eigmatrix import ModeshapeEigmatrix
 from eigenproblem import Eigenproblem
+
+from eigenvectors import Eigenvecs
+from eigenvectors_mass_norm import EigenvecsMassNorm
+from eigenvalues import Eigenvals
+
 from eigenproblem_santize import EigenSantize
 from modal_reduction import ModalReduction
 
@@ -97,15 +102,30 @@ class FEM(om.Group):
             ModeshapeEigmatrix(nodal_data=nodal_data),
             promotes_inputs=['Mr_glob_inv', 'Kr_glob'],
             promotes_outputs=['Ar_eig'])
-
-        self.add_subsystem('eigenproblem',
-            Eigenproblem(nodal_data=nodal_data),
+        
+        self.add_subsystem('eigenvectors',
+            Eigenvecs(nodal_data=nodal_data),
             promotes_inputs=['Ar_eig'],
-            promotes_outputs=['Q_raw', 'eig_freqs_raw'])
+            promotes_outputs=['Q_raw'])
+
+        self.add_subsystem('eigenvectors_mass_norm',
+            EigenvecsMassNorm(nodal_data=nodal_data),
+            promotes_inputs=['Mr_glob', 'Q_raw'],
+            promotes_outputs=['Q_mass_norm'])
+        
+        self.add_subsystem('eigenvalues',
+            Eigenvals(nodal_data=nodal_data),
+            promotes_inputs=['Kr_glob', 'Q_mass_norm'],
+            promotes_outputs=['eigenvals_raw'])
+
+        # self.add_subsystem('eigenproblem',
+        #     Eigenproblem(nodal_data=nodal_data),
+        #     promotes_inputs=['Ar_eig'],
+        #     promotes_outputs=['Q_raw', 'eig_freqs_raw'])
 
         self.add_subsystem('eigen_sanitize',
             EigenSantize(nodal_data=nodal_data),
-            promotes_inputs=['Q_raw', 'eig_freqs_raw'],
+            promotes_inputs=['Q_mass_norm', 'eigenvals_raw'],
             promotes_outputs=['Q_full', 'eig_freqs_full'])
 
         self.add_subsystem('reduce_modes',
