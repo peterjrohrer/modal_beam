@@ -16,7 +16,7 @@ class ModeshapeEigmatrix(ExplicitComponent):
 
         self.add_output('Ar_eig', val=np.zeros((nDOF, nDOF)))
 
-        self.declare_partials('*', '*')
+        # self.declare_partials('*', '*')
 
     def compute(self, inputs, outputs):
         K = inputs['Kr_glob']
@@ -24,11 +24,29 @@ class ModeshapeEigmatrix(ExplicitComponent):
 
         outputs['Ar_eig'] = M_inv @ K
 
-    def compute_partials(self, inputs, partials):
+    # def compute_partials(self, inputs, partials):
+    #     K = inputs['Kr_glob']
+    #     M_inv = inputs['Mr_glob_inv']
+
+    #     N_elem = len(K)
+
+    #     partials['Ar_eig', 'Kr_glob'] = np.kron(M_inv, np.identity(N_elem))
+    #     partials['Ar_eig', 'Mr_glob_inv'] = np.kron(np.identity(N_elem), K.T)
+
+    def compute_jacvec_product(self, inputs, d_inputs, d_outputs, mode):
+        nDOF = self.nodal_data['nDOF_r']
         K = inputs['Kr_glob']
         M_inv = inputs['Mr_glob_inv']
 
-        N_elem = len(K)
+        ## Based on Giles (2008), https://people.maths.ox.ac.uk/gilesm/files/NA-08-01.pdf
+        if mode == 'rev':    
+            if 'Ar_eig' in d_outputs:
+                if 'Mr_glob_inv' in d_inputs:
+                    d_inputs['Mr_glob_inv'] += d_outputs['Ar_eig'] @ K.T
+                if 'Kr_glob' in d_inputs:
+                    d_inputs['Kr_glob'] += M_inv.T @ d_outputs['Ar_eig']
 
-        partials['Ar_eig', 'Kr_glob'] = np.kron(M_inv, np.identity(N_elem))
-        partials['Ar_eig', 'Mr_glob_inv'] = np.kron(np.identity(N_elem), K.T)
+        elif mode == 'fwd':
+            if 'Ar_eig' in d_outputs:
+                if 'Mr_glob_inv' in d_inputs:
+                    d_outputs['Ar_eig'] += (d_inputs['Mr_glob_inv'] @ K) + (M_inv @ d_inputs['Kr_glob'])

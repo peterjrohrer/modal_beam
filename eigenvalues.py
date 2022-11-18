@@ -13,10 +13,10 @@ class Eigenvals(om.ExplicitComponent):
         nDOF_r = self.nodal_data['nDOF_r']
         nDOF_tot = self.nodal_data['nDOF_tot']
 
-        self.add_input('Kr_glob', val=np.ones((nDOF_r, nDOF_r)))
+        self.add_input('Kr_glob', val=np.ones((nDOF_r, nDOF_r)), units='N/m')
         self.add_input('Q_mass_norm', val=np.ones((nDOF_r, nDOF_r)))
 
-        self.add_output('eigenvals_raw', val=np.zeros((nDOF_r, nDOF_r)), units='1/s')
+        self.add_output('eigenvals_raw', val=np.zeros((nDOF_r, nDOF_r)))
 
     def compute(self, inputs, outputs):
         nDOF = self.nodal_data['nDOF_r']

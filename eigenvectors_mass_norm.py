@@ -11,10 +11,10 @@ class EigenvecsMassNorm(om.ExplicitComponent):
         self.nodal_data = self.options['nodal_data']
         nDOF_r = self.nodal_data['nDOF_r']
 
-        self.add_input('Mr_glob', val=np.ones((nDOF_r, nDOF_r)))
+        self.add_input('Mr_glob', val=np.ones((nDOF_r, nDOF_r)), units='kg')
         self.add_input('Q_raw', val=np.ones((nDOF_r, nDOF_r)))
 
-        self.add_output('Q_mass_norm', val=np.zeros((nDOF_r, nDOF_r)), units='1/s')
+        self.add_output('Q_mass_norm', val=np.zeros((nDOF_r, nDOF_r)))
 
     def compute(self, inputs, outputs):
         nDOF = self.nodal_data['nDOF_r']

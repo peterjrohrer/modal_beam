@@ -1,6 +1,5 @@
-import numpy as np
-import scipy
 import openmdao.api as om
+
 from modeshape_block_rotation import ModeshapeBlockRotation
 
 from modeshape_elem_mass import ModeshapeElemMass
@@ -16,7 +15,7 @@ from modeshape_dof_reduce import ModeshapeDOFReduce
 
 from modeshape_M_inv import ModeshapeMInv
 from modeshape_eigmatrix import ModeshapeEigmatrix
-from eigenproblem import Eigenproblem
+# from eigenproblem import Eigenproblem
 
 from eigenvectors import Eigenvecs
 from eigenvectors_mass_norm import EigenvecsMassNorm

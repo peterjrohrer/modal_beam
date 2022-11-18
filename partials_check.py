@@ -95,7 +95,7 @@ prob.setup(derivatives=True, force_alloc_complex=True)
 prob.set_solver_print(level=1)
 prob.run_model()
 
-comp_to_check = 'cantilever.fem_group.eigenproblem'
+comp_to_check = 'cantilever.fem_group.modeshape_M_inv'
 apart_tol = 1.e-5
 rpart_tol = 1.e-6
 

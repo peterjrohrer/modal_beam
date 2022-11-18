@@ -13,7 +13,7 @@ class EigenSantize(ExplicitComponent):
         nMode = self.nodal_data['nMode']
 
         self.add_input('Q_mass_norm', val=np.zeros((nDOF_r, nDOF_r)))
-        self.add_input('eigenvals_raw', val=np.zeros((nDOF_r, nDOF_r)), units='1/s')
+        self.add_input('eigenvals_raw', val=np.zeros((nDOF_r, nDOF_r)))
     
         self.add_output('Q_full', val=np.zeros((nDOF_tot, nDOF_r)))
         self.add_output('eig_freqs_full', val=np.zeros(nDOF_r), units='1/s')
