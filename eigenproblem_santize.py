@@ -39,12 +39,12 @@ class EigenSantize(ExplicitComponent):
         # Export frequencies
         Lambda = np.sqrt(lambdaDiag)/(2*np.pi) # frequencies [Hz]
 
-        # --- Renormalize modes 
-        for j in range(Q.shape[1]):
-            q_j = Q[:,j]
-            iMax = np.argmax(np.abs(q_j))
-            scale = q_j[iMax] # not using abs to normalize to "1" and not "+/-1"
-            Q[:,j]= Q[:,j]/scale
+        # # --- Renormalize modes 
+        # for j in range(Q.shape[1]):
+        #     q_j = Q[:,j]
+        #     iMax = np.argmax(np.abs(q_j))
+        #     scale = q_j[iMax] # not using abs to normalize to "1" and not "+/-1"
+        #     Q[:,j]= Q[:,j]/scale
 
         # --- Add removed DOF back into eigenvectors
         Qr = Q
