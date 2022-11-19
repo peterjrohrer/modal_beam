@@ -18,6 +18,7 @@ from modeshape_eigmatrix import ModeshapeEigmatrix
 # from eigenproblem import Eigenproblem
 
 from eigenvectors import Eigenvecs
+from eigenvectors_modal_mass import EigenvecsModalMass
 from eigenvectors_mass_norm import EigenvecsMassNorm
 from eigenvalues import Eigenvals
 
@@ -107,9 +108,14 @@ class FEM(om.Group):
             promotes_inputs=['Ar_eig'],
             promotes_outputs=['Q_raw'])
 
+        self.add_subsystem('eigenvectors_modal_mass',
+            EigenvecsModalMass(nodal_data=nodal_data),
+            promotes_inputs=['Mr_glob', 'Q_raw'],
+            promotes_outputs=['M_mode_eig'])
+
         self.add_subsystem('eigenvectors_mass_norm',
             EigenvecsMassNorm(nodal_data=nodal_data),
-            promotes_inputs=['Mr_glob', 'Q_raw'],
+            promotes_inputs=['M_mode_eig', 'Q_raw'],
             promotes_outputs=['Q_mass_norm'])
         
         self.add_subsystem('eigenvalues',

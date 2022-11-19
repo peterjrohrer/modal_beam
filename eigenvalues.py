@@ -13,8 +13,8 @@ class Eigenvals(om.ExplicitComponent):
         nDOF_r = self.nodal_data['nDOF_r']
         nDOF_tot = self.nodal_data['nDOF_tot']
 
-        self.add_input('Kr_glob', val=np.ones((nDOF_r, nDOF_r)), units='N/m')
-        self.add_input('Q_mass_norm', val=np.ones((nDOF_r, nDOF_r)))
+        self.add_input('Kr_glob', val=np.zeros((nDOF_r, nDOF_r)), units='N/m')
+        self.add_input('Q_mass_norm', val=np.zeros((nDOF_r, nDOF_r)))
 
         self.add_output('eigenvals_raw', val=np.zeros((nDOF_r, nDOF_r)))
 
@@ -23,6 +23,26 @@ class Eigenvals(om.ExplicitComponent):
         K = inputs['Kr_glob']
         Q = inputs['Q_mass_norm']
                 
-        Lambda=np.dot(Q.T,K).dot(Q)
+        Lambda= Q.T @ K @ Q
 
         outputs['eigenvals_raw'] = Lambda
+
+    def compute_jacvec_product(self, inputs, d_inputs, d_outputs, mode):
+        nDOF = self.nodal_data['nDOF_r']
+        K = inputs['Kr_glob']
+        Q = inputs['Q_mass_norm']
+
+        ## Based on Giles (2008), https://people.maths.ox.ac.uk/gilesm/files/NA-08-01.pdf (first quadratic form)
+        if mode == 'rev':    
+            if 'eigenvals_raw' in d_outputs:
+                if 'Q_mass_norm' in d_inputs:
+                    d_inputs['Q_mass_norm'] += (K @ Q @ d_outputs['eigenvals_raw'].T) + (K.T @ Q @ d_outputs['eigenvals_raw']) 
+                if 'Kr_glob' in d_inputs:
+                    d_inputs['Kr_glob'] += Q @ d_outputs['eigenvals_raw'] @ Q.T
+
+        elif mode == 'fwd':
+            if 'eigenvals_raw' in d_outputs:
+                if 'Q_mass_norm' in d_inputs:
+                    d_outputs['eigenvals_raw'] += (d_inputs['Q_mass_norm'].T @ K @ Q) + (Q.T @ K @ d_inputs['Q_mass_norm']) 
+                if 'Kr_glob' in d_inputs:
+                    d_outputs['eigenvals_raw'] += (Q.T @ d_inputs['Kr_glob'] @ Q) 

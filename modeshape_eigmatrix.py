@@ -49,4 +49,6 @@ class ModeshapeEigmatrix(ExplicitComponent):
         elif mode == 'fwd':
             if 'Ar_eig' in d_outputs:
                 if 'Mr_glob_inv' in d_inputs:
-                    d_outputs['Ar_eig'] += (d_inputs['Mr_glob_inv'] @ K) + (M_inv @ d_inputs['Kr_glob'])
+                    d_outputs['Ar_eig'] += (d_inputs['Mr_glob_inv'] @ K) 
+                if 'Kr_glob' in d_inputs:
+                    d_outputs['Ar_eig'] += (M_inv @ d_inputs['Kr_glob'])
