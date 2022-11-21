@@ -139,10 +139,10 @@ for i in range(nMode):
 
 # Set labels and legend
 axs1['ul'].grid()
-axs1['ul'].set_xlim(-0.1,5.1)
+axs1['ul'].set_xlim(-0.1,6.1)
 axs1['ul'].set_ylabel('Y-displacement')
 axs1['ll'].grid()
-axs1['ll'].set_xlim(-0.1,5.1)
+axs1['ll'].set_xlim(-0.1,6.1)
 axs1['ll'].set_xlabel('X-displacement')
 axs1['ll'].set_ylabel('Z-displacement')
 # axs1['ll'].set_ylim(-1,1.1)
