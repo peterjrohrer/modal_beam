@@ -8,38 +8,29 @@ class EigenSantize(ExplicitComponent):
 
     def setup(self):
         self.nodal_data = self.options['nodal_data']
-        nDOF_tot = self.nodal_data['nDOF_tot']
-        nDOF_r = self.nodal_data['nDOF_r']
+        nDOF = self.nodal_data['nDOF_tot']
         nMode = self.nodal_data['nMode']
 
-        self.add_input('Q_all', val=np.zeros((nDOF_tot, nDOF_r)))
-        self.add_input('eigenvals_sorted', val=np.zeros(nDOF_r))
+        self.add_input('Q_unnorm', val=np.zeros((nDOF, nMode)))
     
-        self.add_output('Q_full', val=np.zeros((nDOF_tot, nDOF_r)))
-        self.add_output('eig_freqs_full', val=np.zeros(nDOF_r), units='1/s')
+        self.add_output('Q', val=np.zeros((nDOF, nMode)))
 
     def setup_partials(self):
-        nDOF_tot = self.nodal_data['nDOF_tot']
-        nDOF_r = self.nodal_data['nDOF_r']
+        nDOF = self.nodal_data['nDOF_tot']
+        nMode = self.nodal_data['nMode']
         
-        self.declare_partials('Q_full', 'Q_all')
-        self.declare_partials('eig_freqs_full', 'eigenvals_sorted', rows=np.arange(nDOF_r), cols=np.arange(nDOF_r))
+        self.declare_partials('Q', 'Q_unnorm')
 
     def compute(self, inputs, outputs):
-        nDOF_tot = self.nodal_data['nDOF_tot']
-        nDOF_r = self.nodal_data['nDOF_r']
+        nDOF = self.nodal_data['nDOF_tot']
+        nMode = self.nodal_data['nMode']
         Tr = self.nodal_data['Tr']
-        Q = inputs['Q_all']
-        LambdaDiag = inputs['eigenvals_sorted']
-
-        # Export frequencies
-        Lambda = np.sqrt(np.real(LambdaDiag))/(2*np.pi) # frequencies [Hz]
-        outputs['eig_freqs_full'] = Lambda
+        Q = inputs['Q_unnorm']
 
         # --- Renormalize modes 
-        self.argmax_idx = np.zeros(nDOF_r)
-        self.scales = np.zeros(nDOF_r)
-        for j in range(nDOF_r):
+        self.argmax_idx = np.zeros(nMode)
+        self.scales = np.zeros(nMode)
+        for j in range(nMode):
             q_j = Q[:,j]
             iMax = np.argmax(np.abs(q_j))
             scale = q_j[iMax] # not using abs to normalize to "1" and not "+/-1"
@@ -56,7 +47,7 @@ class EigenSantize(ExplicitComponent):
             W=list(np.where(bb)[0])
             print('[WARN] Found {:d} complex eigenvectors at positions {}/{}'.format(sum(bb),W,Q.shape[0]))
 
-        outputs['Q_full'] = Q
+        outputs['Q'] = Q
     
         # # Throw errors for unexpected eigenvalues
         # if any(np.imag(vals) != 0.) :
@@ -72,40 +63,36 @@ class EigenSantize(ExplicitComponent):
 
     def compute_partials(self, inputs, partials):
         nDOF_tot = self.nodal_data['nDOF_tot']
-        nDOF_r = self.nodal_data['nDOF_r']
-        Q = inputs['Q_all']
-        LambdaDiag = inputs['eigenvals_sorted']
+        nMode = self.nodal_data['nMode']
+        Q = inputs['Q_unnorm']
 
-        partials['Q_full', 'Q_all'] = np.eye((nDOF_tot * nDOF_r))  
+        partials['Q', 'Q_unnorm'] = np.eye((nDOF_tot * nMode))  
 
-        partials['eig_freqs_full', 'eigenvals_sorted'] = np.zeros(nDOF_r)
-        for i in range(nDOF_r):
-            partials['eig_freqs_full', 'eigenvals_sorted'][i] += 1. / ((4.*np.pi)*np.sqrt(np.real(LambdaDiag[i])))
 
         ##TODO need to revisit this partial
-        # Q_part = np.zeros_like(partials['Q_full', 'Q_all'])  
-        # scale_idx = np.zeros(nDOF_r, dtype=int)
-        # for i in range(nDOF_r):
+        # Q_part = np.zeros_like(partials['Q', 'Q_unnorm'])  
+        # scale_idx = np.zeros(nMode, dtype=int)
+        # for i in range(nMode):
         #     scale_idx[i] = self.argmax_idx[i] + (i * nDOF_tot)
         
-        # for j in range(nDOF_r):
+        # for j in range(nMode):
         #     for i in range(nDOF_tot):
         #         ix1 = (j * nDOF_tot) + i
         #         Q_part[ix1,scale_idx[j]] += -1. / (self.scales[j] * self.scales[j])
         
-        # partials['Q_full', 'Q_all'] += Q_part
+        # partials['Q', 'Q_unnorm'] += Q_part
             
         # # --- Renormalize modes 
-        # for j in range(nDOF_r):
+        # for j in range(nMode):
         #     q_j = Q[:,j]
         #     iMax = np.argmax(np.abs(q_j))
         #     scale = q_j[iMax] # not using abs to normalize to "1" and not "+/-1"
         #     Q[:,j]= Q[:,j]/scale
         
-        # Q_part = np.zeros((nDOF_tot, nDOF_r, nDOF_tot, nDOF_r))
-        # for i in range(nDOF_r):
+        # Q_part = np.zeros((nDOF_tot, nMode, nDOF_tot, nMode))
+        # for i in range(nMode):
         #     for j in range(nDOF_tot):
         #         if j == self.argmax_idx[i]:
         #             Q_part[:,i,j,i] += -1. / (self.scales[i] * self.scales[i])
 
-        # partials['Q_full', 'Q_all'] += np.reshape(Q_part, ((nDOF_tot * nDOF_r),(nDOF_tot * nDOF_r)))
+        # partials['Q', 'Q_unnorm'] += np.reshape(Q_part, ((nDOF_tot * nMode),(nDOF_tot * nMode)))

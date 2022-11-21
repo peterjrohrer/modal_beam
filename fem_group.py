@@ -21,6 +21,7 @@ from eigenvectors import Eigenvecs
 from eigenvectors_modal_mass import EigenvecsModalMass
 from eigenvectors_mass_norm import EigenvecsMassNorm
 from eigenvalues import Eigenvals
+from eigenval_to_freq import Eigen2Freq
 from eigenproblem_sort import EigenSort
 from eigenvecs_removed import EigenRemoved
 from eigenproblem_santize import EigenSantize
@@ -127,27 +128,32 @@ class FEM(om.Group):
         # self.add_subsystem('eigenproblem',
         #     Eigenproblem(nodal_data=nodal_data),
         #     promotes_inputs=['Ar_eig'],
-        #     promotes_outputs=['Q_raw', 'eig_freqs_raw'])
+        #     promotes_outputs=['Q_raw', 'eigfreqs_raw'])
 
         self.add_subsystem('eigen_sort',
             EigenSort(nodal_data=nodal_data),
             promotes_inputs=['Q_mass_norm', 'eigenvals_raw'],
             promotes_outputs=['Q_sorted', 'eigenvals_sorted'])
+        
+        self.add_subsystem('eignval_to_freq',
+            Eigen2Freq(nodal_data=nodal_data),
+            promotes_inputs=['eigenvals_sorted'],
+            promotes_outputs=['eigfreqs_all'])
 
         self.add_subsystem('eigen_removed',
             EigenRemoved(nodal_data=nodal_data),
             promotes_inputs=['Q_sorted'],
             promotes_outputs=['Q_all'])
+        
+        self.add_subsystem('reduce_modes',
+            ModalReduction(nodal_data=nodal_data),
+            promotes_inputs=['Q_all', 'eigfreqs_all'],
+            promotes_outputs=['Q_unnorm', 'eigfreqs'])
 
         self.add_subsystem('eigen_sanitize',
             EigenSantize(nodal_data=nodal_data),
-            promotes_inputs=['Q_all', 'eigenvals_sorted'],
-            promotes_outputs=['Q_full', 'eig_freqs_full'])
-
-        self.add_subsystem('reduce_modes',
-            ModalReduction(nodal_data=nodal_data),
-            promotes_inputs=['Q_full', 'eig_freqs_full'],
-            promotes_outputs=['Q', 'eig_freqs'])
+            promotes_inputs=['Q_unnorm'],
+            promotes_outputs=['Q'])
 
         self.add_subsystem('modeshapes',
             Eig2Mode(nodal_data=nodal_data),

@@ -30,7 +30,7 @@ class BeamDirectionalCosines(om.ExplicitComponent):
         self.add_output('dir_cosines', val=np.zeros((nElem,3,3)))
 
     def setup_partials(self):
-        self.declare_partials('dir_cosines', ['x_beamnode', 'y_beamnode', 'z_beamnode'])
+        self.declare_partials('dir_cosines', ['x_beamnode', 'y_beamnode', 'z_beamnode'], method='fd', form='forward', step_calc='rel_element', step=1e-8)
 
     def compute(self, inputs, outputs):
         nElem = self.nodal_data['nElem']
@@ -46,7 +46,7 @@ class BeamDirectionalCosines(om.ExplicitComponent):
         z_nodes = inputs['z_beamnode']
 
         nodes = np.vstack((x_nodes,y_nodes,z_nodes))
-        DCM = np.zeros((nElem,3,3))
+        DCM = np.zeros((nElem,3,3), dtype=complex)
 
         for i in np.arange(nElem):
             dx= (nodes[:,i+1]-nodes[:,i]).reshape(3,1)
@@ -70,12 +70,12 @@ class BeamDirectionalCosines(om.ExplicitComponent):
         
         outputs['dir_cosines'] = DCM
 
-    def compute_partials(self, inputs, partials):
-        nElem = self.nodal_data['nElem']
-        nNode = self.nodal_data['nNode']
+    ##TODO define these partials
+    # def compute_partials(self, inputs, partials):
+    #     nElem = self.nodal_data['nElem']
+    #     nNode = self.nodal_data['nNode']
 
-        partials['dir_cosines', 'x_beamnode'] = np.zeros(((nElem*3*3),(nNode)))
-        partials['dir_cosines', 'y_beamnode'] = np.zeros(((nElem*3*3),(nNode)))
-        partials['dir_cosines', 'z_beamnode'] = np.zeros(((nElem*3*3),(nNode)))
+    #     partials['dir_cosines', 'x_beamnode'] = np.zeros(((nElem*3*3),(nNode)))
+    #     partials['dir_cosines', 'y_beamnode'] = np.zeros(((nElem*3*3),(nNode)))
+    #     partials['dir_cosines', 'z_beamnode'] = np.zeros(((nElem*3*3),(nNode)))
 
-        ##TODO define these partials

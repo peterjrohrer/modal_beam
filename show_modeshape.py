@@ -92,7 +92,7 @@ prob.model.set_input_defaults('tip_inertia', val=tip_inertia, units='kg*m*m')
 prob.model.add_subsystem('cantilever', 
     cantilever_group, 
     promotes_inputs=['D_beam', 'wt_beam', 'L_beam_tot', 'tip_mass', 'ref_to_cog', 'tip_inertia'],
-    promotes_outputs=['L_beam', 'A_beam', 'Ix_beam', 'Iy_beam', 'M_beam', 'x_beamnode', 'y_beamnode', 'z_beamnode', 'dir_cosines', 'Q', 'eig_freqs', 'x_nodes', 'y_nodes', 'z_nodes', 'y_d_nodes', 'z_d_nodes', 'y_dd_nodes', 'z_dd_nodes', 'M_modal', 'K_modal'])
+    promotes_outputs=['L_beam', 'A_beam', 'Ix_beam', 'Iy_beam', 'M_beam', 'x_beamnode', 'y_beamnode', 'z_beamnode', 'dir_cosines', 'Q', 'eigfreqs', 'x_nodes', 'y_nodes', 'z_nodes', 'y_d_nodes', 'z_d_nodes', 'y_dd_nodes', 'z_dd_nodes', 'M_modal', 'K_modal'])
 
 # Setup and run problem
 prob.setup(mode='rev', derivatives=True)
@@ -102,7 +102,7 @@ prob.run_model()
 print('----- FROM FINITE ELEMENT MODEL -----')
 for n in range(nMode):
     m = (n+1)
-    print('Mode %1d Nat. Period: %3.3f Hz (%3.3f s)' %(m, (prob['eig_freqs'][n]), (1./prob['eig_freqs'][n])))
+    print('Mode %1d Nat. Period: %3.3f Hz (%3.3f s)' %(m, (prob['eigfreqs'][n]), (1./prob['eigfreqs'][n])))
 
 ## --- Check Eigenvals
 M_modal = prob['M_modal'] 
@@ -133,9 +133,9 @@ plt.rc('font', **font)
 fig1, axs1 = plt.subplot_mosaic([['ul', '.'], ['ll', 'lr']], figsize=(12, 10), layout="constrained", sharey=True)
 
 for i in range(nMode):
-    axs1['ul'].plot(x_nodes[:,i], y_nodes[:,i], label='Mode %2d: %2.3f Hz' %((i+1, prob['eig_freqs'][i])), ls='--', marker='o', ms=5)
-    axs1['ll'].plot(x_nodes[:,i], z_nodes[:,i], label='Mode %2d: %2.3f Hz' %((i+1, prob['eig_freqs'][i])), ls='--', marker='o', ms=5)
-    axs1['lr'].plot(y_nodes[:,i], z_nodes[:,i], label='Mode %2d: %2.3f Hz' %((i+1, prob['eig_freqs'][i])), ls='--', marker='o', ms=5)
+    axs1['ul'].plot(x_nodes[:,i], y_nodes[:,i], label='Mode %2d: %2.3f Hz' %((i+1, prob['eigfreqs'][i])), ls='--', marker='o', ms=5)
+    axs1['ll'].plot(x_nodes[:,i], z_nodes[:,i], label='Mode %2d: %2.3f Hz' %((i+1, prob['eigfreqs'][i])), ls='--', marker='o', ms=5)
+    axs1['lr'].plot(y_nodes[:,i], z_nodes[:,i], label='Mode %2d: %2.3f Hz' %((i+1, prob['eigfreqs'][i])), ls='--', marker='o', ms=5)
 
 # Set labels and legend
 axs1['ul'].grid()
@@ -162,9 +162,9 @@ plt.savefig(os.path.join(my_path,(fname+'.png')), dpi=400, format='png')
 # fig2, axs2 = plt.subplot_mosaic([['ul', '.'], ['ll', 'lr']], figsize=(12, 10), layout="constrained", sharey=True)
 
 # for i in range(nMode):
-#     axs2['ul'].plot(x_nodes[:,i], y_dd_nodes[:,i], label='Mode %2d: %2.3f Hz' %((i+1, prob['eig_freqs'][i])), ls='--', marker='o', ms=5)
-#     axs2['ll'].plot(x_nodes[:,i], z_dd_nodes[:,i], label='Mode %2d: %2.3f Hz' %((i+1, prob['eig_freqs'][i])), ls='--', marker='o', ms=5)
-#     axs2['lr'].plot(y_dd_nodes[:,i], z_dd_nodes[:,i], label='Mode %2d: %2.3f Hz' %((i+1, prob['eig_freqs'][i])), ls='--', marker='o', ms=5)
+#     axs2['ul'].plot(x_nodes[:,i], y_dd_nodes[:,i], label='Mode %2d: %2.3f Hz' %((i+1, prob['eigfreqs'][i])), ls='--', marker='o', ms=5)
+#     axs2['ll'].plot(x_nodes[:,i], z_dd_nodes[:,i], label='Mode %2d: %2.3f Hz' %((i+1, prob['eigfreqs'][i])), ls='--', marker='o', ms=5)
+#     axs2['lr'].plot(y_dd_nodes[:,i], z_dd_nodes[:,i], label='Mode %2d: %2.3f Hz' %((i+1, prob['eigfreqs'][i])), ls='--', marker='o', ms=5)
 
 # # Set labels and legend
 # axs2['ul'].grid()

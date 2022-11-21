@@ -39,4 +39,4 @@ class Cantilever(om.Group):
         self.add_subsystem('fem_group',
             fem_group,
             promotes_inputs=['L_beam', 'A_beam', 'Ix_beam', 'Iy_beam', 'Iz_beam', 'M_beam', 'tip_mass_mat', 'dir_cosines', 'x_beamnode', 'y_beamnode', 'z_beamnode'],
-            promotes_outputs=['Q', 'eig_freqs', 'x_nodes', 'y_nodes', 'z_nodes', 'y_d_nodes', 'z_d_nodes', 'y_dd_nodes', 'z_dd_nodes', 'M_modal', 'K_modal'])      
+            promotes_outputs=['Q', 'eigfreqs', 'x_nodes', 'y_nodes', 'z_nodes', 'y_d_nodes', 'z_d_nodes', 'y_dd_nodes', 'z_dd_nodes', 'M_modal', 'K_modal'])      

@@ -8,7 +8,7 @@ from utils import *
 from cantilever_group import Cantilever
 
 ## --- Processing nodes (can be done outside of optimization!)
-nElem = 3
+nElem = 5
 nNode = nElem + 1
 nDOFperNode =  6
 nNodeperElem =  2
@@ -88,7 +88,7 @@ prob.model.set_input_defaults('tip_inertia', val=tip_inertia, units='kg*m*m')
 prob.model.add_subsystem('cantilever', 
     cantilever_group, 
     promotes_inputs=['D_beam', 'wt_beam', 'L_beam_tot', 'tip_mass', 'ref_to_cog', 'tip_inertia'],
-    promotes_outputs=['L_beam', 'A_beam', 'Ix_beam', 'Iy_beam', 'M_beam', 'x_beamnode', 'y_beamnode', 'z_beamnode', 'dir_cosines', 'Q', 'eig_freqs', 'x_nodes', 'y_nodes', 'z_nodes', 'M_modal', 'K_modal'])
+    promotes_outputs=['L_beam', 'A_beam', 'Ix_beam', 'Iy_beam', 'M_beam', 'x_beamnode', 'y_beamnode', 'z_beamnode', 'dir_cosines', 'Q', 'eigfreqs', 'x_nodes', 'y_nodes', 'z_nodes', 'M_modal', 'K_modal'])
 
 # Setup and run problem
 prob.setup(derivatives=True, force_alloc_complex=True)
@@ -100,7 +100,7 @@ apart_tol = 1.e-5
 rpart_tol = 1.e-6
 
 # check_partials_data = prob.check_partials(method='fd', form='central', abs_err_tol=apart_tol, rel_err_tol=rpart_tol, step_calc='rel_avg', step=1e-8, show_only_incorrect=True, compact_print=True)
-check_partials_data = prob.check_partials(method='fd',form='forward', includes=comp_to_check, step_calc='rel_element', step=1e-8, show_only_incorrect=False, compact_print=True)
+check_partials_data = prob.check_partials(method='fd',form='central', includes=comp_to_check, step_calc='rel_element', step=1e-8, show_only_incorrect=False, compact_print=True)
 # check_partials_data = prob.check_partials(method='cs', includes=comp_to_check, show_only_incorrect=False, compact_print=True)
 
-# om.partial_deriv_plot('Q_full', 'Q_all', check_partials_data, binary=True)
+om.partial_deriv_plot('dir_cosines', 'y_beamnode', check_partials_data, binary=True)

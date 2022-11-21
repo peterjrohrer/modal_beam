@@ -12,11 +12,11 @@ class ModalReduction(ExplicitComponent):
         nDOF_r = self.nodal_data['nDOF_r']
         nMode = self.nodal_data['nMode']
 
-        self.add_input('Q_full', val=np.zeros((nDOF_tot, nDOF_r)))
-        self.add_input('eig_freqs_full', val=np.zeros(nDOF_r), units='1/s')
+        self.add_input('Q_all', val=np.zeros((nDOF_tot, nDOF_r)))
+        self.add_input('eigfreqs_all', val=np.zeros(nDOF_r), units='1/s')
     
-        self.add_output('Q', val=np.zeros((nDOF_tot, nMode)))
-        self.add_output('eig_freqs', val=np.zeros(nMode), units='1/s')
+        self.add_output('Q_unnorm', val=np.zeros((nDOF_tot, nMode)))
+        self.add_output('eigfreqs', val=np.zeros(nMode), units='1/s')
 
     def setup_partials(self):
         nDOF_tot = self.nodal_data['nDOF_tot']
@@ -31,18 +31,18 @@ class ModalReduction(ExplicitComponent):
             removed_cols = (i*nDOF_r) + cols_idx
             Hcols = np.setdiff1d(Hcols,removed_cols)
 
-        self.declare_partials('Q', 'Q_full', rows=Hrows, cols=Hcols)
-        self.declare_partials('eig_freqs', 'eig_freqs_full', rows=np.arange(nMode), cols=np.arange(nMode))
+        self.declare_partials('Q_unnorm', 'Q_all', rows=Hrows, cols=Hcols)
+        self.declare_partials('eigfreqs', 'eigfreqs_all', rows=np.arange(nMode), cols=np.arange(nMode))
 
     def compute(self, inputs, outputs):
         nMode = self.nodal_data['nMode']
        
-        outputs['Q'] = inputs['Q_full'][:,:nMode]
-        outputs['eig_freqs'] = inputs['eig_freqs_full'][:nMode]
+        outputs['Q_unnorm'] = inputs['Q_all'][:,:nMode]
+        outputs['eigfreqs'] = inputs['eigfreqs_all'][:nMode]
 
     def compute_partials(self, inputs, partials):
         nDOF_tot = self.nodal_data['nDOF_tot']
         nMode = self.nodal_data['nMode']
 
-        partials['Q', 'Q_full'] = np.ones(nDOF_tot * nMode)        
-        partials['eig_freqs', 'eig_freqs_full'] = np.ones(nMode)        
+        partials['Q_unnorm', 'Q_all'] = np.ones(nDOF_tot * nMode)        
+        partials['eigfreqs', 'eigfreqs_all'] = np.ones(nMode)        
