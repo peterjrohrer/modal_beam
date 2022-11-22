@@ -14,16 +14,17 @@ class SVD2Normal(om.ExplicitComponent):
         self.nodal_data = self.options['nodal_data']
         nElem = self.nodal_data['nElem']
 
-        self.add_input('tangent_v', val=np.zeros((3,3)))
+        self.add_input('tangent_v', val=np.zeros((3,1)))
 
         self.add_output('normal_vecs', val=np.zeros((nElem,3,1)))
 
     def setup_partials(self):
-        nElem = self.nodal_data['nElem']
-        nPart = nElem * 3
-        Hcols = np.tile(np.array([0,3,6]),nElem)
+        # nElem = self.nodal_data['nElem']
+        # nPart = nElem * 3
+        # Hcols = np.tile(np.array([0,3,6]),nElem)
 
-        self.declare_partials('normal_vecs', 'tangent_v', rows=np.arange(nPart), cols=Hcols, val=np.ones(nPart))
+        # self.declare_partials('normal_vecs', 'tangent_v', rows=np.arange(nPart), cols=Hcols, val=np.ones(nPart))
+        self.declare_partials('normal_vecs', 'tangent_v', method='fd')
 
     def compute(self, inputs, outputs):
         nElem = self.nodal_data['nElem']
@@ -31,6 +32,7 @@ class SVD2Normal(om.ExplicitComponent):
         e2 = np.zeros((nElem,3,1))
 
         for i in range(nElem):
-            e2[i,:,:] = inputs['tangent_v'][:,0].reshape(3,1) 
+            # e2[i,:,:] = inputs['tangent_v'][:,0].reshape(3,1) 
+            e2[i,:,:] = inputs['tangent_v'].reshape(3,1) 
             
         outputs['normal_vecs'] = e2
