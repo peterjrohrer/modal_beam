@@ -3,7 +3,7 @@ import openmdao.api as om
 
 from beam import Beam
 from tip_mass import TipMass
-from beam_directional_cosines import BeamDirectionalCosines
+from dcm_group import DCMGroup
 from fem_group import FEM
 
 class Cantilever(om.Group):
@@ -24,8 +24,8 @@ class Cantilever(om.Group):
             promotes_inputs=['tip_mass', 'ref_to_cog', 'tip_inertia'],
             promotes_outputs=['tip_mass_mat'])
         
-        self.add_subsystem('beam_dir_cosines',
-            BeamDirectionalCosines(nodal_data=nodal_data),
+        self.add_subsystem('dcm_group',
+            DCMGroup(nodal_data=nodal_data),
             promotes_inputs=['x_beamnode', 'y_beamnode', 'z_beamnode'],
             promotes_outputs=['dir_cosines'])
 
