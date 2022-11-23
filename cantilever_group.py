@@ -24,11 +24,6 @@ class Cantilever(om.Group):
             promotes_inputs=['tip_mass', 'ref_to_cog', 'tip_inertia'],
             promotes_outputs=['tip_mass_mat'])
         
-        # self.add_subsystem('dcm_group',
-        #     DCMGroup(nodal_data=nodal_data),
-        #     promotes_inputs=['x_beamnode', 'y_beamnode', 'z_beamnode'],
-        #     promotes_outputs=['dir_cosines'])
-
         fem_group = FEM(nodal_data=nodal_data)
         # fem_group.linear_solver = om.ScipyKrylov()
         # fem_group.linear_solver = om.DirectSolver(assemble_jac=True)
