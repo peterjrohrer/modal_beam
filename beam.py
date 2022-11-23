@@ -52,10 +52,8 @@ class Beam(om.ExplicitComponent):
         L_beam = np.ones(nElem)*L_per_elem
 
         x_beamnode = np.concatenate(([0.],np.cumsum(L_beam)))
-        # y_beamnode = np.zeros_like(x_beamnode)
-        # z_beamnode = np.zeros_like(x_beamnode)
-        y_beamnode = x_beamnode/2.
-        z_beamnode = np.linspace(0,1.,nNode)
+        y_beamnode = np.zeros_like(x_beamnode)
+        z_beamnode = np.zeros_like(x_beamnode)
         
         A_beam = np.zeros_like(D_beam)
         Ix_beam = np.zeros_like(D_beam)

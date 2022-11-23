@@ -62,7 +62,6 @@ class FEM(om.Group):
         
         self.add_subsystem('modeshape_block_rotation',
             ModeshapeBlockRotation(nodal_data=nodal_data),
-            promotes_inputs=['dir_cosines'],
             promotes_outputs=['block_rot_mat'])
 
         self.add_subsystem('modeshape_elem_txform',

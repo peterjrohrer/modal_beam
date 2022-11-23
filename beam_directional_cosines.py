@@ -46,7 +46,7 @@ class BeamDirectionalCosines(om.ExplicitComponent):
         z_nodes = inputs['z_beamnode']
 
         nodes = np.vstack((x_nodes,y_nodes,z_nodes))
-        DCM = np.zeros((nElem,3,3), dtype=complex)
+        DCM = np.zeros((nElem,3,3))
 
         for i in np.arange(nElem):
             dx= (nodes[:,i+1]-nodes[:,i]).reshape(3,1)

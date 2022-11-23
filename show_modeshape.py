@@ -46,6 +46,9 @@ for i in IDOF_All:
         k+=1
 
 nMode = 10
+
+DCM_beam = elementDCMforHorizontal(nElem=nElem)
+
 nodal_data = {
     'nElem': nElem,
     'nNode': nNode,
@@ -63,6 +66,7 @@ nodal_data = {
     'Tr': Tr, 
     'nDOF_r': nDOF_r,
     'nMode': nMode,
+    'DCM': DCM_beam,
 }
 
 # Bring in problem with defined defaults
@@ -92,7 +96,7 @@ prob.model.set_input_defaults('tip_inertia', val=tip_inertia, units='kg*m*m')
 prob.model.add_subsystem('cantilever', 
     cantilever_group, 
     promotes_inputs=['D_beam', 'wt_beam', 'L_beam_tot', 'tip_mass', 'ref_to_cog', 'tip_inertia'],
-    promotes_outputs=['L_beam', 'A_beam', 'Ix_beam', 'Iy_beam', 'M_beam', 'x_beamnode', 'y_beamnode', 'z_beamnode', 'dir_cosines', 'Q', 'eigfreqs', 'x_nodes', 'y_nodes', 'z_nodes', 'y_d_nodes', 'z_d_nodes', 'y_dd_nodes', 'z_dd_nodes', 'M_modal', 'K_modal'])
+    promotes_outputs=['L_beam', 'A_beam', 'Ix_beam', 'Iy_beam', 'M_beam', 'x_beamnode', 'y_beamnode', 'z_beamnode', 'Q', 'eigfreqs', 'x_nodes', 'y_nodes', 'z_nodes', 'y_d_nodes', 'z_d_nodes', 'y_dd_nodes', 'z_dd_nodes', 'M_modal', 'K_modal'])
 
 # Setup and run problem
 prob.setup(mode='rev', derivatives=True)

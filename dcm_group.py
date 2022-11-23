@@ -21,29 +21,29 @@ class DCMGroup(om.Group):
             promotes_inputs=['x_beamnode', 'y_beamnode', 'z_beamnode'],
             promotes_outputs=['dir_cosines'])
 
-        self.add_subsystem('delta_nodes',
-            DeltaNodes(nodal_data=nodal_data),
-            promotes_inputs=['x_beamnode', 'y_beamnode', 'z_beamnode'],
-            promotes_outputs=['d_node', 'elem_norm'])
+        # self.add_subsystem('delta_nodes',
+        #     DeltaNodes(nodal_data=nodal_data),
+        #     promotes_inputs=['x_beamnode', 'y_beamnode', 'z_beamnode'],
+        #     promotes_outputs=['d_node', 'elem_norm'])
 
-        self.add_subsystem('tangent_vector',
-            TangentVector(nodal_data=nodal_data),
-            promotes_inputs=['d_node', 'elem_norm'],
-            promotes_outputs=['tangent_vecs'])
+        # self.add_subsystem('tangent_vector',
+        #     TangentVector(nodal_data=nodal_data),
+        #     promotes_inputs=['d_node', 'elem_norm'],
+        #     promotes_outputs=['tangent_vecs'])
 
-        self.add_subsystem('first_tangent_vector',
-            FirstTangentVector(nodal_data=nodal_data),
-            promotes_inputs=['tangent_vecs'],
-            promotes_outputs=['first_tangent_vec'])
+        # self.add_subsystem('first_tangent_vector',
+        #     FirstTangentVector(nodal_data=nodal_data),
+        #     promotes_inputs=['tangent_vecs'],
+        #     promotes_outputs=['first_tangent_vec'])
 
-        self.add_subsystem('tangent_svd',
-            TangentSVD(nodal_data=nodal_data),
-            promotes_inputs=['first_tangent_vec'],
-            promotes_outputs=['tangent_u', 'tangent_s', 'tangent_v'])
+        # self.add_subsystem('tangent_svd',
+        #     TangentSVD(nodal_data=nodal_data),
+        #     promotes_inputs=['first_tangent_vec'],
+        #     promotes_outputs=['tangent_u', 'tangent_s', 'tangent_v'])
 
-        self.add_subsystem('svd_to_normal',
-            SVD2Normal(nodal_data=nodal_data),
-            promotes_inputs=['tangent_v'],
-            promotes_outputs=['normal_vecs'])
+        # self.add_subsystem('svd_to_normal',
+        #     SVD2Normal(nodal_data=nodal_data),
+        #     promotes_inputs=['tangent_v'],
+        #     promotes_outputs=['normal_vecs'])
 
 
