@@ -47,7 +47,11 @@ for i in IDOF_All:
 
 nMode = 10
 
+## Rotation Matrices
 DCM_beam = elementDCMforHorizontal(nElem=nElem)
+DCM_col = elementDCMforVertical(20)
+DCM_pont = elementDCMforPontoons(10,3)
+RR = transformMatrixfromDCM(DCM=DCM_beam)
 
 nodal_data = {
     'nElem': nElem,
@@ -67,6 +71,7 @@ nodal_data = {
     'nDOF_r': nDOF_r,
     'nMode': nMode,
     'DCM': DCM_beam,
+    'RR': RR,
 }
 
 # Bring in problem with defined defaults

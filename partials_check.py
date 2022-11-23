@@ -42,9 +42,13 @@ for i in IDOF_All:
         k+=1
 
 nMode = 3
+
+## Rotation Matrices
 DCM_beam = elementDCMforHorizontal(nElem=nElem)
 DCM_col = elementDCMforVertical(20)
 DCM_pont = elementDCMforPontoons(10,3)
+RR = transformMatrixfromDCM(DCM=DCM_beam)
+
 nodal_data = {
     'nElem': nElem,
     'nNode': nNode,
@@ -63,6 +67,7 @@ nodal_data = {
     'nDOF_r': nDOF_r,
     'nMode': nMode,
     'DCM': DCM_beam,
+    'RR': RR,
 }
 
 # Bring in problem with defined defaults
@@ -99,7 +104,7 @@ prob.setup(derivatives=True, force_alloc_complex=True)
 prob.set_solver_print(level=1)
 prob.run_model()
 
-comp_to_check = 'cantilever.dcm_group.tangent_svd'
+comp_to_check = 'cantilever.fem_group.modeshape_elem_txform'
 apart_tol = 1.e-5
 rpart_tol = 1.e-6
 
@@ -107,4 +112,4 @@ rpart_tol = 1.e-6
 check_partials_data = prob.check_partials(method='fd', form='forward', includes=comp_to_check, step_calc='rel_element', step=1e-8, show_only_incorrect=False, compact_print=True)
 # check_partials_data = prob.check_partials(method='cs', includes=comp_to_check, show_only_incorrect=False, compact_print=True)
 
-om.partial_deriv_plot('tangent_v', 'first_tangent_vec', check_partials_data, binary=True)
+# om.partial_deriv_plot('tangent_v', 'first_tangent_vec', check_partials_data, binary=True)

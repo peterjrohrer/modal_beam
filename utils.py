@@ -4,6 +4,7 @@ Utility functions, adapted from WELIB by Emmanuel Branlard
 '''
 
 import numpy as np
+import scipy.linalg
 
 
 def LinearDOFMapping(nElem, nNodesPerElem, nDOFperNode):
@@ -93,6 +94,8 @@ def elementDCMforPontoons(nElem, nPont):
         DCM_p3[:,1,0] = np.cos((7./6.)*np.pi)
         DCM_p3[:,1,1] = np.cos((2./3.)*np.pi)
         DCM_p3[:,2,2] = 1.
+    else:
+        raise Exception('Not defined for %d pontoons' %nPont)
 
     DCM = np.concatenate((DCM_p1, DCM_p2, DCM_p3), axis=0)
     
@@ -142,3 +145,20 @@ def elementDCMfromBeamNodes(x_nodes, y_nodes, z_nodes, phi=None):
         e1_last= e1
         e2_last= e2
     return DCM
+
+def transformMatrixfromDCM(DCM):
+    """ Generate transformation matrix from DCMs 
+
+    INPUTS:
+        DCM: (nElem)
+    OUTPUTS:
+        RR:  (nElem) x 12 x 12
+    """
+    nElem = DCM.shape[0]
+    RR = np.zeros((nElem,12,12))
+
+    for i in range(nElem):
+        R = DCM[i,:,:]
+        RR[i,:,:] = scipy.linalg.block_diag(R,R,R,R)
+
+    return RR
