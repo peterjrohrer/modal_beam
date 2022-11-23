@@ -17,9 +17,6 @@ class ModalMass(ExplicitComponent):
 
         self.add_output('M_modal', val=np.zeros((nMode,nMode)), units='kg')
 
-    def	setup_partials(self):
-        self.declare_partials('M_modal', ['M_glob', 'Q'])
-
     def compute(self, inputs, outputs):
         nMode = self.nodal_data['nMode']
 
@@ -29,43 +26,21 @@ class ModalMass(ExplicitComponent):
         
         outputs['M_modal'] = M_modal
 
-    def compute_partials(self, inputs, partials):
-        nDOF_tot = self.nodal_data['nDOF_tot']
-        nMode = self.nodal_data['nMode']
-
+    def compute_jacvec_product(self, inputs, d_inputs, d_outputs, mode):
+        M = inputs['M_glob']
         Q = inputs['Q']
-        M_glob = inputs['M_glob']
 
-        partials['M_modal', 'M_glob'] = np.kron(Q.T,Q.T)
+        ## Based on Giles (2008), https://people.maths.ox.ac.uk/gilesm/files/NA-08-01.pdf (first quadratic form)
+        if mode == 'rev':    
+            if 'M_modal' in d_outputs:
+                if 'Q' in d_inputs:
+                    d_inputs['Q'] += (M @ Q @ d_outputs['M_modal'].T) + (M.T @ Q @ d_outputs['M_modal']) 
+                if 'M_glob' in d_inputs:
+                    d_inputs['M_glob'] += Q @ d_outputs['M_modal'] @ Q.T
 
-        # --- Somewhat hacky solution         
-        partials['M_modal', 'Q'] = np.kron((M_glob@Q).T,np.eye(nMode))
-        rows = []
-        for i in range(nMode):
-            row = []
-            for j in range(nDOF_tot):
-                block = np.zeros((nMode,nMode))
-                E = np.zeros_like(Q)
-                E[j,i] += 1.
-                block += (Q.T @ M_glob @ E)
-                row.append(block)
-            row_concat = np.concatenate(row,axis=1)
-            rows.append(row_concat)
-        blocked = np.concatenate(rows,axis=0)
-        partials['M_modal', 'Q'] += blocked
-
-        # # --- Theoretical Solution         
-        # rows = []
-        # for i in range(nMode):
-        #     row = []
-        #     for j in range(nDOF_tot):
-        #         block = np.zeros((nMode,nMode))
-        #         E = np.zeros_like(Q)
-        #         E[j,i] += 1.
-        #         block += (Q.T @ M_glob @ E)
-        #         block += (E.T @ (M_glob @ Q))
-        #         row.append(block)
-        #     row_concat = np.concatenate(row,axis=1)
-        #     rows.append(row_concat)
-        # blocked = np.concatenate(rows,axis=0)
-        # partials['M_modal', 'Q'] += blocked
+        elif mode == 'fwd':
+            if 'M_modal' in d_outputs:
+                if 'Q' in d_inputs:
+                    d_outputs['M_modal'] += (d_inputs['Q'].T @ M @ Q) + (Q.T @ M @ d_inputs['Q']) 
+                if 'M_glob' in d_inputs:
+                    d_outputs['M_modal'] += (Q.T @ d_inputs['M_glob'] @ Q) 

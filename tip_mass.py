@@ -83,7 +83,6 @@ class TipMass(om.ExplicitComponent):
         M_point[3,5] = M_point[5,3] = Jxz - (m*x*z)
         M_point[4,5] = M_point[5,4] = Jyz - (m*y*z)
         
-        ##TODO define these partials
         dM_dm = np.zeros((6,6))
         dM_dcog = np.zeros((6,6,3))
         dM_diner = np.zeros((6,6,3,3))

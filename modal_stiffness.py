@@ -23,9 +23,6 @@ class ModalStiffness(ExplicitComponent):
 
         self.add_output('K_modal', val=np.zeros((nMode,nMode)), units='N/m')
 
-    def	setup_partials(self):
-        self.declare_partials('K_modal', ['K_glob', 'Q'])
-
     def compute(self, inputs, outputs):
         nMode = self.nodal_data['nMode']
 
@@ -35,27 +32,21 @@ class ModalStiffness(ExplicitComponent):
         
         outputs['K_modal'] = K_modal
 
-    def compute_partials(self, inputs, partials):
-        nDOF_tot = self.nodal_data['nDOF_tot']
-        nMode = self.nodal_data['nMode']
-
+    def compute_jacvec_product(self, inputs, d_inputs, d_outputs, mode):
+        M = inputs['K_glob']
         Q = inputs['Q']
-        K_glob = inputs['K_glob']
 
-        partials['K_modal', 'K_glob'] = np.kron(Q.T,Q.T)
+        ## Based on Giles (2008), https://people.maths.ox.ac.uk/gilesm/files/NA-08-01.pdf (first quadratic form)
+        if mode == 'rev':    
+            if 'K_modal' in d_outputs:
+                if 'Q' in d_inputs:
+                    d_inputs['Q'] += (M @ Q @ d_outputs['K_modal'].T) + (M.T @ Q @ d_outputs['K_modal']) 
+                if 'K_glob' in d_inputs:
+                    d_inputs['K_glob'] += Q @ d_outputs['K_modal'] @ Q.T
 
-        # --- Somewhat hacky solution         
-        partials['K_modal', 'Q'] = np.kron((K_glob@Q).T,np.eye(nMode))
-        rows = []
-        for i in range(nMode):
-            row = []
-            for j in range(nDOF_tot):
-                block = np.zeros((nMode,nMode))
-                E = np.zeros_like(Q)
-                E[j,i] += 1.
-                block += (Q.T @ K_glob @ E)
-                row.append(block)
-            row_concat = np.concatenate(row,axis=1)
-            rows.append(row_concat)
-        blocked = np.concatenate(rows,axis=0)
-        partials['K_modal', 'Q'] += blocked
+        elif mode == 'fwd':
+            if 'K_modal' in d_outputs:
+                if 'Q' in d_inputs:
+                    d_outputs['K_modal'] += (d_inputs['Q'].T @ M @ Q) + (Q.T @ M @ d_inputs['Q']) 
+                if 'K_glob' in d_inputs:
+                    d_outputs['K_modal'] += (Q.T @ d_inputs['K_glob'] @ Q)

@@ -44,6 +44,7 @@ class Eigenvecs(om.ExplicitComponent):
         self.F_matrix = F
 
     def compute_jacvec_product(self, inputs, d_inputs, d_outputs, mode):
+        ##TODO persistent questionable partials??
         nDOF = self.nodal_data['nDOF_r']
         Q = self.Q
         D = self.D
