@@ -11,6 +11,7 @@ from modeshape_glob_mass import ModeshapeGlobMass
 from modeshape_glob_stiff import ModeshapeGlobStiff
 from modeshape_point_mass import ModeshapePointMass
 from modeshape_point_stiff import ModeshapePointStiff
+from transform_matrix import TransformMatrix
 from modeshape_dof_reduce import ModeshapeDOFReduce
 
 from modeshape_M_inv import ModeshapeMInv
@@ -85,10 +86,15 @@ class FEM(om.Group):
             promotes_inputs=['K_glob_pre'], 
             promotes_outputs=['K_glob'])
 
+        self.add_subsystem('transform_matrix',
+            TransformMatrix(nodal_data=nodal_data),
+            promotes_inputs=[],
+            promotes_outputs=['Tr'])
+
         self.add_subsystem('modeshape_dof_reduce',
             ModeshapeDOFReduce(nodal_data=nodal_data),
-            promotes_inputs=['M_glob','K_glob'], 
-            promotes_outputs=['Mr_glob', 'Kr_glob'])
+            promotes_inputs=['Tr','M_glob','K_glob'], 
+            promotes_outputs=['Mr_glob', 'Kr_glob', 'A_glob'])
 
         self.add_subsystem('modeshape_M_inv',
             ModeshapeMInv(nodal_data=nodal_data),

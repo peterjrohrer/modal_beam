@@ -8,7 +8,7 @@ from utils import *
 from cantilever_group import Cantilever
 
 ## --- Processing nodes (can be done outside of optimization!)
-nElem = 15
+nElem = 10
 nNode = nElem + 1
 nDOFperNode =  6
 nNodeperElem =  2
@@ -80,18 +80,18 @@ cantilever_group = Cantilever(nodal_data=nodal_data) # Increased nodes
 prob.model.set_input_defaults('D_beam', val=0.25*np.ones(nElem), units='m')
 prob.model.set_input_defaults('wt_beam', val=0.01*np.ones(nElem), units='m')
 prob.model.set_input_defaults('L_beam_tot', val=5., units='m')
-prob.model.set_input_defaults('tip_mass', val=1000., units='kg')
+prob.model.set_input_defaults('tip_mass', val=100., units='kg')
 ref2cog = np.zeros(3)
 ref2cog[0] += 0.05
 ref2cog[1] += 0.25
 ref2cog[2] += 0.15
 prob.model.set_input_defaults('ref_to_cog', val=ref2cog, units='m')
 tip_inertia = np.zeros((3,3))
-tip_inertia[0,0] += 10000.
-tip_inertia[1,1] += 10000.
-tip_inertia[0,1] += 5000.
-tip_inertia[0,2] += 3000.
-tip_inertia[1,2] += 8000.
+tip_inertia[0,0] += 1000.
+tip_inertia[1,1] += 1000.
+tip_inertia[0,1] += 500.
+tip_inertia[0,2] += 300.
+tip_inertia[1,2] += 800.
 prob.model.set_input_defaults('tip_inertia', val=tip_inertia, units='kg*m*m')
 
 prob.model.add_subsystem('cantilever', 
@@ -104,12 +104,12 @@ prob.setup(derivatives=True, force_alloc_complex=True)
 prob.set_solver_print(level=1)
 prob.run_model()
 
-comp_to_check = 'cantilever.fem_group.eigen_sanitize'
+comp_to_check = 'cantilever.fem_group.modeshape_dof_reduce'
 apart_tol = 1.e-5
 rpart_tol = 1.e-6
 
 # check_partials_data = prob.check_partials(method='fd', form='central', abs_err_tol=apart_tol, rel_err_tol=rpart_tol, step_calc='rel_avg', step=1e-8, show_only_incorrect=True, compact_print=True)
-check_partials_data = prob.check_partials(method='fd', form='forward', includes=comp_to_check, step_calc='rel_element', step=1e-8, show_only_incorrect=False, compact_print=True)
-# check_partials_data = prob.check_partials(method='cs', includes=comp_to_check, show_only_incorrect=False, compact_print=True)
+# check_partials_data = prob.check_partials(method='fd', form='forward', includes=comp_to_check, step_calc='rel_element', step=1e-8, show_only_incorrect=False, compact_print=True)
+check_partials_data = prob.check_partials(method='cs', includes=comp_to_check, show_only_incorrect=False, compact_print=True)
 
-om.partial_deriv_plot('Q', 'Q_unnorm', check_partials_data, binary=True)
+om.partial_deriv_plot('Mr_glob', 'Tr', check_partials_data, binary=False)

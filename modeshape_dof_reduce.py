@@ -13,11 +13,13 @@ class ModeshapeDOFReduce(ExplicitComponent):
         nDOF_tot = self.nodal_data['nDOF_tot']
         nDOF_r = self.nodal_data['nDOF_r']
 
+        self.add_input('Tr', val=np.zeros((nDOF_tot, nDOF_r)))
         self.add_input('M_glob', val=np.zeros((nDOF_tot, nDOF_tot)), units='kg')
         self.add_input('K_glob', val=np.zeros((nDOF_tot, nDOF_tot)), units='N/m')
     
         self.add_output('Mr_glob', val=np.zeros((nDOF_r, nDOF_r)), units='kg')
         self.add_output('Kr_glob', val=np.zeros((nDOF_r, nDOF_r)), units='N/m')
+        self.add_output('A_glob', val=np.zeros((nDOF_tot, nDOF_tot)), units='N/m')
 
     def setup_partials(self):
         nDOF_tot = self.nodal_data['nDOF_tot']
@@ -34,23 +36,40 @@ class ModeshapeDOFReduce(ExplicitComponent):
             removed_DOF = (i*nDOF_tot) + IDOF_removed 
             Hcols = np.setdiff1d(Hcols,removed_DOF)
 
-        self.declare_partials('Mr_glob', 'M_glob', rows=Hrows, cols=Hcols)
-        self.declare_partials('Kr_glob', 'K_glob', rows=Hrows, cols=Hcols)
+        self.declare_partials('Mr_glob', 'M_glob', rows=Hrows, cols=Hcols, val=np.ones(nDOF_r * nDOF_r))
+        self.declare_partials('Kr_glob', 'K_glob', rows=Hrows, cols=Hcols, val=np.ones(nDOF_r * nDOF_r))
+        self.declare_partials('Mr_glob', 'Tr')
+        self.declare_partials('Kr_glob', 'Tr')
+        self.declare_partials('A_glob', 'M_glob')
+        self.declare_partials('A_glob', 'K_glob')
 
     def compute(self, inputs, outputs):
-        Tr = self.nodal_data['Tr']
+        Tr = inputs['Tr']
 
         M_glob = inputs['M_glob']
         K_glob = inputs['K_glob']
 
-        Mr = (Tr.T).dot(M_glob).dot(Tr)
-        Kr = (Tr.T).dot(K_glob).dot(Tr)       
+        Mr = (Tr.T) @ (M_glob) @ (Tr)
+        Kr = (Tr.T) @ (K_glob) @ (Tr)       
        
         outputs['Mr_glob'] = Mr
         outputs['Kr_glob'] = Kr
+        outputs['A_glob'] = M_glob @ K_glob
 
     def compute_partials(self, inputs, partials):
+        nDOF_tot = self.nodal_data['nDOF_tot']
         nDOF_r = self.nodal_data['nDOF_r']
 
-        partials['Mr_glob', 'M_glob'] = np.ones(nDOF_r * nDOF_r)
-        partials['Kr_glob', 'K_glob'] = np.ones(nDOF_r * nDOF_r)
+        Tr = inputs['Tr']
+        M_glob = inputs['M_glob']
+        K_glob = inputs['K_glob']
+    
+        dMr_dTr1 = np.einsum('lj,ki->klij',np.eye(nDOF_r),(Tr.T @ M_glob))
+        dMr_dTr2 = np.einsum('kj,il->klij',np.eye(nDOF_r),(M_glob @ Tr))
+        dKr_dTr1 = np.einsum('lj,ki->klij',np.eye(nDOF_r),(Tr.T @ K_glob))
+        dKr_dTr2 = np.einsum('kj,il->klij',np.eye(nDOF_r),(K_glob @ Tr))
+
+        partials['Mr_glob', 'Tr'] = np.reshape((dMr_dTr1 + dMr_dTr2), (nDOF_r * nDOF_r, nDOF_tot * nDOF_r))
+        partials['Kr_glob', 'Tr'] = np.reshape((dKr_dTr1 + dKr_dTr2), (nDOF_r * nDOF_r, nDOF_tot * nDOF_r))
+        partials['A_glob', 'M_glob'] = np.kron(np.eye(nDOF_tot),K_glob)
+        partials['A_glob', 'K_glob'] = np.kron(M_glob, np.eye(nDOF_tot))

@@ -37,7 +37,7 @@ class ModeshapeElemGeomStiff(om.ExplicitComponent):
             kel_geom[i, 1, 7] = kel_geom[i, 7, 1] = kel_geom[i, 2, 8] = kel_geom[i, 8, 2] = -6. / (5. * L_beam[i])
             kel_geom[i, 1, 5] = kel_geom[i, 5, 1] = kel_geom[i, 1, 11] = kel_geom[i, 11, 1] = 1. / 10.
             kel_geom[i, 4, 8] = kel_geom[i, 8, 4] = kel_geom[i, 8, 10] = kel_geom[i, 10, 8] = 1. / 10.
-            kel_geom[i, 2, 5] = kel_geom[i, 5, 2] = kel_geom[i, 2, 10] = kel_geom[i, 10, 2] = -1. / 10.
+            kel_geom[i, 2, 4] = kel_geom[i, 4, 2] = kel_geom[i, 2, 10] = kel_geom[i, 10, 2] = -1. / 10.
             kel_geom[i, 5, 7] = kel_geom[i, 7, 5] = kel_geom[i, 7, 11] = kel_geom[i, 11, 7] = -1. / 10.
             kel_geom[i, 4, 4] = kel_geom[i, 5, 5] = kel_geom[i, 10, 10] = kel_geom[i, 11, 11] = 2. * L_beam[i] / 15.
             kel_geom[i, 4, 10] = kel_geom[i, 10, 4] = kel_geom[i, 5, 11] = kel_geom[i, 11, 5] = -1. * L_beam[i] / 30.
