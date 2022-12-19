@@ -1,4 +1,8 @@
+import numpy as np
+import jax.numpy as jnp
+
 import openmdao.api as om
+import openmdao.func_api as omf
 
 from modeshape_block_rotation import ModeshapeBlockRotation
 
@@ -106,8 +110,22 @@ class FEM(om.Group):
             promotes_inputs=['Mr_glob_inv', 'Kr_glob'],
             promotes_outputs=['Ar_eig'])
         
+        # self.add_subsystem('eigenvectors',
+        #     Eigenvecs(nodal_data=nodal_data),
+        #     promotes_inputs=['Ar_eig'],
+        #     promotes_outputs=['Q_raw'])
+
+        def func(Ar_eig=np.eye(nodal_data['nDOF_r'])):
+            _, Q_raw = np.linalg.eig(Ar_eig)
+            return Q_raw
+        
+        f = (omf.wrap(func)
+                .add_input('Ar_eig', shape=(nodal_data['nDOF_r'], nodal_data['nDOF_r']))
+                .add_output('Q_raw', shape=(nodal_data['nDOF_r'], nodal_data['nDOF_r']))
+                .declare_partials(of='Q_raw', wrt='Ar_eig', method='jax'))
+        
         self.add_subsystem('eigenvectors',
-            Eigenvecs(nodal_data=nodal_data),
+            om.ExplicitFuncComp(f, use_jit=True),
             promotes_inputs=['Ar_eig'],
             promotes_outputs=['Q_raw'])
 
@@ -143,7 +161,7 @@ class FEM(om.Group):
 
         self.add_subsystem('eigen_removed',
             EigenRemoved(nodal_data=nodal_data),
-            promotes_inputs=['Q_sorted'],
+            promotes_inputs=['Tr', 'Q_sorted'],
             promotes_outputs=['Q_all'])
         
         self.add_subsystem('reduce_modes',

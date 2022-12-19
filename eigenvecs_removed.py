@@ -12,6 +12,7 @@ class EigenRemoved(ExplicitComponent):
         nDOF_r = self.nodal_data['nDOF_r']
         nMode = self.nodal_data['nMode']
 
+        self.add_input('Tr', val=np.zeros((nDOF_tot, nDOF_r)))
         self.add_input('Q_sorted', val=np.zeros((nDOF_r, nDOF_r)))
     
         self.add_output('Q_all', val=np.zeros((nDOF_tot, nDOF_r)))
@@ -29,12 +30,13 @@ class EigenRemoved(ExplicitComponent):
                 a=1
         Hrows = Hrows0[mask,...]
     
-        self.declare_partials('Q_all', 'Q_sorted', rows=Hrows, cols=np.arange(nPart), val=np.ones(nPart))
+        self.declare_partials('Q_all', 'Q_sorted')#, rows=Hrows, cols=np.arange(nPart), val=np.ones(nPart))
+        self.declare_partials('Q_all', 'Tr')
 
     def compute(self, inputs, outputs):
         nDOF_tot = self.nodal_data['nDOF_tot']
         nDOF_r = self.nodal_data['nDOF_r']
-        Tr = self.nodal_data['Tr']
+        Tr = inputs['Tr']
         Q = inputs['Q_sorted']
 
         # --- Add removed DOF back into eigenvectors
@@ -42,3 +44,12 @@ class EigenRemoved(ExplicitComponent):
         Q = Tr.dot(Qr)
 
         outputs['Q_all'] = Q
+    
+    def compute_partials(self, inputs, partials, discrete_inputs=None):
+        nDOF_tot = self.nodal_data['nDOF_tot']
+        nDOF_r = self.nodal_data['nDOF_r']
+        Tr = inputs['Tr']
+        Q = inputs['Q_sorted']
+
+        partials['Q_all', 'Q_sorted'] = np.kron(Tr, np.eye(nDOF_r))
+        partials['Q_all', 'Tr'] = np.kron(np.eye(nDOF_tot), Q.T)

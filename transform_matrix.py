@@ -17,6 +17,7 @@ class TransformMatrix(ExplicitComponent):
 
     def compute(self, inputs, outputs):
         Tr = self.nodal_data['Tr']
+        Tr[14,5] += 10.
         outputs['Tr'] = Tr
 
     def compute_partials(self, inputs, partials):

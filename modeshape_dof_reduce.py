@@ -42,11 +42,12 @@ class ModeshapeDOFReduce(ExplicitComponent):
         y1 = np.einsum('lj,ki->klij',np.eye(nDOF_r),np.ones((nDOF_r,nDOF_tot)))
         y2 = np.einsum('kj,il->klij',np.eye(nDOF_r),np.ones((nDOF_tot,nDOF_r)))
         b = np.reshape((y1 + y2), (nDOF_r * nDOF_r, nDOF_tot * nDOF_r))
-        Grows = np.nonzero(b)[0]
-        Gcols = np.nonzero(b)[1]
+        self.Grows = np.nonzero(b)[0]
+        self.Gcols = np.nonzero(b)[1]
 
-        self.declare_partials('Mr_glob', 'Tr', rows=Grows, cols=Gcols)
-        self.declare_partials('Kr_glob', 'Tr', rows=Grows, cols=Gcols)
+        self.declare_partials('Mr_glob', 'Tr', rows=self.Grows, cols=self.Gcols)
+        self.declare_partials('Kr_glob', 'Tr', rows=self.Grows, cols=self.Gcols)
+
         self.declare_partials('A_glob', 'M_glob')
         self.declare_partials('A_glob', 'K_glob')
 
@@ -84,11 +85,11 @@ class ModeshapeDOFReduce(ExplicitComponent):
 
         a = np.reshape(dMr_dTr, (nDOF_r * nDOF_r, nDOF_tot * nDOF_r))
     
-        y1 = np.einsum('lj,ki->klij',np.ones((nDOF_r,1)),(Tr.T @ M_glob))
-        y2 = np.einsum('kj,il->klij',np.ones((nDOF_r,1)),(M_glob @ Tr))
-        b = np.reshape(y1+y2, (nDOF_r * nDOF_r * nDOF_tot ))
+        y1 = np.einsum('lj,ki->klij',np.eye(nDOF_r),(Tr.T @ M_glob))
+        y2 = np.einsum('kj,il->klij',np.eye(nDOF_r),(M_glob @ Tr))
+        b = np.reshape(y1+y2, (nDOF_r * nDOF_r, nDOF_tot * nDOF_r))
 
-        partials['Mr_glob', 'Tr'] = b
-        partials['Kr_glob', 'Tr'] = np.reshape(dKr_dTr, (nDOF_r * nDOF_r, nDOF_tot * nDOF_r))
+        partials['Mr_glob', 'Tr'] = np.reshape(b[self.Grows,self.Gcols],len(self.Grows))
+        # partials['Kr_glob', 'Tr'] = np.reshape(dKr_dTr, (nDOF_r * nDOF_r, nDOF_tot * nDOF_r))
         partials['A_glob', 'M_glob'] = np.kron(np.eye(nDOF_tot),K_glob)
         partials['A_glob', 'K_glob'] = np.kron(M_glob, np.eye(nDOF_tot))

@@ -8,7 +8,7 @@ from utils import *
 from cantilever_group import Cantilever
 
 ## --- Processing nodes (can be done outside of optimization!)
-nElem = 10
+nElem = 3
 nNode = nElem + 1
 nDOFperNode =  6
 nNodeperElem =  2
@@ -88,7 +88,7 @@ ref2cog[2] += 0.15
 prob.model.set_input_defaults('ref_to_cog', val=ref2cog, units='m')
 tip_inertia = np.zeros((3,3))
 tip_inertia[0,0] += 1000.
-tip_inertia[1,1] += 1000.
+tip_inertia[1,1] += 1200.
 tip_inertia[0,1] += 500.
 tip_inertia[0,2] += 300.
 tip_inertia[1,2] += 800.
@@ -109,7 +109,7 @@ apart_tol = 1.e-5
 rpart_tol = 1.e-6
 
 # check_partials_data = prob.check_partials(method='fd', form='central', abs_err_tol=apart_tol, rel_err_tol=rpart_tol, step_calc='rel_avg', step=1e-8, show_only_incorrect=True, compact_print=True)
-# check_partials_data = prob.check_partials(method='fd', form='forward', includes=comp_to_check, step_calc='rel_element', step=1e-8, show_only_incorrect=False, compact_print=True)
-check_partials_data = prob.check_partials(method='cs', includes=comp_to_check, show_only_incorrect=False, compact_print=True)
+check_partials_data = prob.check_partials(method='fd', form='forward', includes=comp_to_check, step_calc='rel_element', step=1e-8, show_only_incorrect=False, compact_print=True)
+# check_partials_data = prob.check_partials(method='cs', includes=comp_to_check, show_only_incorrect=False, compact_print=True)
 
-om.partial_deriv_plot('Mr_glob', 'Tr', check_partials_data, binary=False)
+# om.partial_deriv_plot('Q_raw', 'Ar_eig', check_partials_data, binary=True)

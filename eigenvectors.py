@@ -17,6 +17,9 @@ class Eigenvecs(om.ExplicitComponent):
 
         self.add_output('Q_raw', val=np.ones((nDOF_r, nDOF_r)))
 
+    def setup_partials(self):
+        self.declare_partials('Q_raw', 'Ar_eig')
+
     def compute(self, inputs, outputs):
         nDOF = self.nodal_data['nDOF_r']
         A = inputs['Ar_eig']
@@ -38,27 +41,55 @@ class Eigenvecs(om.ExplicitComponent):
                 if i == j:
                     pass
                 else:
-                    E[i,j] = (D[j]-D[i])
-                    F[i,j] = 1./(D[j]-D[i])
+                    E[i, j] = (D[j]-D[i])
+                    F[i, j] = 1./(D[j]-D[i])
         self.E_matrix = E
         self.F_matrix = F
 
-    def compute_jacvec_product(self, inputs, d_inputs, d_outputs, mode):
-        ##TODO persistent questionable partials??
+    def compute_partials(self, inputs, partials, discrete_inputs=None):
         nDOF = self.nodal_data['nDOF_r']
+        A = inputs['Ar_eig']
+
         Q = self.Q
         D = self.D
-        A = inputs['Ar_eig']
-        E = self.E_matrix
-        F = self.F_matrix
 
-        ## Based on Giles (2008), https://people.maths.ox.ac.uk/gilesm/files/NA-08-01.pdf
-        if mode == 'rev':    
-            if 'Q_raw' in d_outputs:
-                if 'Ar_eig' in d_inputs:
-                    d_inputs['Ar_eig'] += np.real(scipy.linalg.inv(Q).T @ (np.multiply(F, (Q.T @ d_outputs['Q_raw']))) @ Q.T)
+        # dv_dQ = np.zeros((nDOF,nDOF,nDOF,nDOF),dtype=complex)
+        # dB_db = np.einsum('lj,ki->klij',np.eye(nDOF),np.eye(nDOF))
 
-        elif mode == 'fwd':
-            if 'Q_raw' in d_outputs:
-                if 'Ar_eig' in d_inputs:
-                    d_outputs['Q_raw'] += np.real(Q @ np.multiply(F, (np.linalg.inv(Q) @ d_inputs['Ar_eig'] @ Q)))
+        # for i in range(nDOF):
+        #     for j in range(nDOF):
+        #         for k in range(nDOF):
+        #             for l in range(nDOF):
+        #                 dv_dQ[i,j,k,l] = np.sum(self.F_matrix[i,j] * np.inner(dB_db[k,l]@Q[:,i],Q[:,j]) * Q[:,j])
+        
+        dQ_dA = np.zeros((nDOF,nDOF,nDOF,nDOF), dtype=complex)
+        for i in range(nDOF):
+            for j in range(nDOF):
+                dA = np.zeros_like(A)
+                dA[i, j] = 1.
+
+                P = scipy.linalg.solve(Q, np.dot(dA, Q))
+                dU = np.dot(Q, (self.F_matrix * P))
+                dQ_dA
+
+        partials['Q_raw', 'Ar_eig'] = np.reshape(dQ_dA, (nDOF*nDOF, nDOF*nDOF))
+
+    # def compute_jacvec_product(self, inputs, d_inputs, d_outputs, mode):
+    #     ##TODO persistent questionable partials??
+    #     nDOF = self.nodal_data['nDOF_r']
+    #     Q = self.Q
+    #     D = self.D
+    #     A = inputs['Ar_eig']
+    #     E = self.E_matrix
+    #     F = self.F_matrix
+
+    #     ## Based on Giles (2008), https://people.maths.ox.ac.uk/gilesm/files/NA-08-01.pdf
+    #     if mode == 'rev':    
+    #         if 'Q_raw' in d_outputs:
+    #             if 'Ar_eig' in d_inputs:
+    #                 d_inputs['Ar_eig'] += np.real(scipy.linalg.inv(Q).T @ (np.multiply(F, (Q.T @ d_outputs['Q_raw']))) @ Q.T)
+
+    #     elif mode == 'fwd':
+    #         if 'Q_raw' in d_outputs:
+    #             if 'Ar_eig' in d_inputs:
+    #                 d_outputs['Q_raw'] += np.real(Q @ np.multiply(F, (np.linalg.inv(Q) @ d_inputs['Ar_eig'] @ Q)))
