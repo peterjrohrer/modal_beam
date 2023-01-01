@@ -7,7 +7,7 @@ from utils import *
 from cantilever_group import Cantilever
 
 ## --- Processing nodes (can be done outside of optimization!)
-nElem = 6
+nElem = 5
 nNode = nElem + 1
 nDOFperNode =  6
 nNodeperElem =  2
@@ -88,20 +88,20 @@ cantilever_group = Cantilever(nodal_data=nodal_data) # Increased nodes
 # Set inputs
 # prob.model.set_input_defaults('D_beam', val=0.25*np.ones(nElem), units='m')
 prob.model.set_input_defaults('D_beam', val=np.linspace(0.5,0.25,nElem), units='m')
-prob.model.set_input_defaults('wt_beam', val=0.01*np.ones(nElem), units='m')
+prob.model.set_input_defaults('wt_beam', val=0.05*np.ones(nElem), units='m')
 prob.model.set_input_defaults('L_beam_tot', val=3., units='m')
-prob.model.set_input_defaults('tip_mass', val=25., units='kg')
+prob.model.set_input_defaults('tip_mass', val=250., units='kg')
 ref2cog = np.zeros(3)
 ref2cog[0] += 0.05
 ref2cog[1] += 0.25
 ref2cog[2] += 0.15
 prob.model.set_input_defaults('ref_to_cog', val=ref2cog, units='m')
 tip_inertia = np.zeros((3,3))
-tip_inertia[0,0] += 100.
-tip_inertia[1,1] += 120.
-tip_inertia[0,1] += 50.
-tip_inertia[0,2] += 30.
-tip_inertia[1,2] += 80.
+tip_inertia[0,0] += 1000.
+tip_inertia[1,1] += 1200.
+tip_inertia[0,1] += 500.
+tip_inertia[0,2] += 300.
+tip_inertia[1,2] += 800.
 prob.model.set_input_defaults('tip_inertia', val=tip_inertia, units='kg*m*m')
 
 prob.model.add_subsystem('cantilever', 
@@ -114,14 +114,14 @@ prob.setup(derivatives=True, force_alloc_complex=True)
 prob.set_solver_print(level=1)
 prob.run_model()
 
-comp_to_check = 'cantilever.fem_group.eigenvectors'
+comp_to_check = 'cantilever.fem_group.eigenvectors_sort'
 apart_tol = 1.e-5
 rpart_tol = 1.e-6
 
 # check_partials_data = prob.check_partials(method='fd', form='central', abs_err_tol=apart_tol, rel_err_tol=rpart_tol, step_calc='rel_avg', step=1e-8, show_only_incorrect=True, compact_print=True)
-check_partials_data = prob.check_partials(method='fd', form='forward', includes=comp_to_check, step_calc='rel_element', step=1e-4, show_only_incorrect=False, compact_print=True)
-# check_partials_data = prob.check_partials(method='cs', includes=comp_to_check, show_only_incorrect=False, compact_print=True)
+# check_partials_data = prob.check_partials(method='fd', form='forward', includes=comp_to_check, step_calc='rel_element', step=1e-4, show_only_incorrect=False, compact_print=True)
+check_partials_data = prob.check_partials(method='cs', includes=comp_to_check, show_only_incorrect=False, compact_print=True)
 
-om.partial_deriv_plot('Q_raw', 'Ar_eig', check_partials_data, binary=True)
+om.partial_deriv_plot('Q_sort', 'Q_raw', check_partials_data, binary=True)
 
 # prob.check_totals(of=['tot_M','eigfreqs'], wrt=['D_beam', 'wt_beam'])

@@ -16,6 +16,7 @@ class Eigenvecs(om.ExplicitComponent):
         self.add_input('Ar_eig', val=np.ones((nDOF_r, nDOF_r)))
 
         self.add_output('Q_raw', val=np.ones((nDOF_r, nDOF_r)))
+        self.add_output('sort_idx', val=np.zeros(nDOF_r))
 
     # def setup_partials(self):
     #     self.declare_partials('Q_raw', 'Ar_eig')
@@ -28,17 +29,18 @@ class Eigenvecs(om.ExplicitComponent):
         # https://people.maths.ox.ac.uk/gilesm/files/NA-08-01.pdf
         D, Q = scipy.linalg.eig(a=A, b=None, left=False, right=True)
 
-        if np.imag(Q).any() > 0.:
-            raise om.AnalysisError('Imaginary eigvectors')
-        elif np.imag(D).any() > 0.:
-            raise om.AnalysisError('Imaginary eigvalue')
+        # if np.imag(Q).any() > 0.:
+        #     raise om.AnalysisError('Imaginary eigvectors')
+        # elif np.imag(D).any() > 0.:
+        #     raise om.AnalysisError('Imaginary eigvalue')
         
-        # # Sort 
-        # I = np.argsort(D)
+        # Sort 
+        I = np.argsort(D)
         # Q = Q[:,I]
         # D = D[I]
 
         outputs['Q_raw'] = Q
+        outputs['sort_idx'] = I
 
         self.Q = Q
         self.D = D # Must keep complex eigenvalues to have correct derivatives    

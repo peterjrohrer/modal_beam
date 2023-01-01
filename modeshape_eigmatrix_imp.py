@@ -16,7 +16,7 @@ class ModeshapeEigmatrixImp(ImplicitComponent):
         self.add_input('Mr_glob', val=np.zeros((nDOF, nDOF)), units='kg')
         self.add_input('Kr_glob', val=np.zeros((nDOF, nDOF)), units='N/m')
 
-        self.add_output('Ar_eig', val=np.zeros((nDOF, nDOF)))
+        self.add_output('Ar_eig', val=np.zeros((nDOF, nDOF)), ref=1.e7)
 
     def setup_partials(self):
         nDOF = self.nodal_data['nDOF_r']

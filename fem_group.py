@@ -1,5 +1,4 @@
 import numpy as np
-import jax.numpy as jnp
 
 import openmdao.api as om
 import openmdao.func_api as omf
@@ -25,6 +24,8 @@ from modeshape_eigmatrix_imp import ModeshapeEigmatrixImp
 # from eigenproblem import Eigenproblem
 
 from eigenvectors import Eigenvecs
+from modeshape_eig_sort import EigenvecsSort
+from modeshape_eig_select import EigenvecsSelect
 from eigenvectors_modal_mass import EigenvecsModalMass
 from eigenvectors_mass_norm import EigenvecsMassNorm
 from eigenvalues import Eigenvals
@@ -125,7 +126,17 @@ class FEM(om.Group):
         self.add_subsystem('eigenvectors',
             Eigenvecs(nodal_data=nodal_data),
             promotes_inputs=['Ar_eig'],
-            promotes_outputs=['Q_raw'])
+            promotes_outputs=['Q_raw', 'sort_idx'])
+
+        self.add_subsystem('eigenvectors_sort',
+            EigenvecsSort(nodal_data=nodal_data),
+            promotes_inputs=['Q_raw', 'sort_idx'],
+            promotes_outputs=['Q_sort'])
+
+        self.add_subsystem('eigenvectors_select',
+            EigenvecsSelect(nodal_data=nodal_data),
+            promotes_inputs=['Q_sort'],
+            promotes_outputs=['Q_basis'])       
 
         # def func(Ar_eig=np.eye(nodal_data['nDOF_r'])):
         #     _, Q_raw = np.linalg.eig(Ar_eig)
