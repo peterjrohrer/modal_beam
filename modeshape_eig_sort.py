@@ -1,4 +1,5 @@
 import numpy as np
+import scipy.sparse
 from openmdao.api import ExplicitComponent
 
 class EigenvecsSort(ExplicitComponent):
@@ -17,19 +18,19 @@ class EigenvecsSort(ExplicitComponent):
 
     def setup_partials(self):
         nDOF = self.nodal_data['nDOF_r']
-        
-        # Hcols = np.array([])
-        # Hcols0 = np.arange(N_mode)
-        # for i in range(nDOF):
-        #     Hcols_add = Hcols0 + (i*nDOF)
-        #     Hcols = np.concatenate((Hcols,Hcols_add))
+        nPart = nDOF**2
 
-        # self.declare_partials('Q_sort', 'Q_raw', rows=np.arange(N_part), cols=Hcols, val=np.ones(N_part))
+        self.declare_partials('Q_sort', 'Q_raw', val=scipy.sparse.coo_array(np.zeros((nPart,nPart))))
+        self.declare_partials('Q_sort', 'sort_idx', dependent=False)
 
     def compute(self, inputs, outputs):
-
         I = inputs['sort_idx'].astype(int)
         outputs['Q_sort'] = inputs['Q_raw'][:,I]
 
     def compute_partials(self, inputs, partials):
-        pass
+        nDOF = self.nodal_data['nDOF_r']
+        nPart = nDOF**2
+        I = inputs['sort_idx'].astype(int)
+
+        Hcols = np.tile(I,nDOF) + np.repeat((np.arange(nDOF)*nDOF),nDOF)
+        partials['Q_sort', 'Q_raw'] = scipy.sparse.coo_array((np.ones(nPart), (np.arange(nPart), Hcols)), shape=(nPart, nPart))
