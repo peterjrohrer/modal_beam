@@ -7,6 +7,7 @@ import openmdao.func_api as omf
 from modeshape_block_rotation import ModeshapeBlockRotation
 
 from modeshape_elem_mass import ModeshapeElemMass
+from total_mass import TotalMass
 from modeshape_elem_mat_stiff import ModeshapeElemMatStiff
 from modeshape_elem_geom_stiff import ModeshapeElemGeomStiff
 from modeshape_elem_stiff import ModeshapeElemStiff
@@ -20,6 +21,7 @@ from modeshape_dof_reduce import ModeshapeDOFReduce
 
 from modeshape_M_inv import ModeshapeMInv
 from modeshape_eigmatrix import ModeshapeEigmatrix
+from modeshape_eigmatrix_imp import ModeshapeEigmatrixImp
 # from eigenproblem import Eigenproblem
 
 from eigenvectors import Eigenvecs
@@ -49,6 +51,11 @@ class FEM(om.Group):
             ModeshapeElemMass(nodal_data=nodal_data), 
             promotes_inputs=['L_beam', 'A_beam', 'Ix_beam', 'M_beam'], 
             promotes_outputs=['mel_loc'])
+        
+        self.add_subsystem('total_mass', 
+            TotalMass(nodal_data=nodal_data), 
+            promotes_inputs=['M_beam','tip_mass'], 
+            promotes_outputs=['tot_M'])
 
         self.add_subsystem('modeshape_elem_mat_stiff', 
             ModeshapeElemMatStiff(nodal_data=nodal_data), 
@@ -100,34 +107,39 @@ class FEM(om.Group):
             promotes_inputs=['Tr','M_glob','K_glob'], 
             promotes_outputs=['Mr_glob', 'Kr_glob', 'A_glob'])
 
-        self.add_subsystem('modeshape_M_inv',
-            ModeshapeMInv(nodal_data=nodal_data),
-            promotes_inputs=['Mr_glob'],
-            promotes_outputs=['Mr_glob_inv'])
+        # self.add_subsystem('modeshape_M_inv',
+        #     ModeshapeMInv(nodal_data=nodal_data),
+        #     promotes_inputs=['Mr_glob'],
+        #     promotes_outputs=['Mr_glob_inv'])
+
+        # self.add_subsystem('modeshape_eigmatrix',
+        #     ModeshapeEigmatrix(nodal_data=nodal_data),
+        #     promotes_inputs=['Mr_glob_inv', 'Kr_glob'],
+        #     promotes_outputs=['Ar_eig'])
 
         self.add_subsystem('modeshape_eigmatrix',
-            ModeshapeEigmatrix(nodal_data=nodal_data),
-            promotes_inputs=['Mr_glob_inv', 'Kr_glob'],
+            ModeshapeEigmatrixImp(nodal_data=nodal_data),
+            promotes_inputs=['Mr_glob', 'Kr_glob'],
             promotes_outputs=['Ar_eig'])
         
-        # self.add_subsystem('eigenvectors',
-        #     Eigenvecs(nodal_data=nodal_data),
-        #     promotes_inputs=['Ar_eig'],
-        #     promotes_outputs=['Q_raw'])
-
-        def func(Ar_eig=np.eye(nodal_data['nDOF_r'])):
-            _, Q_raw = np.linalg.eig(Ar_eig)
-            return Q_raw
-        
-        f = (omf.wrap(func)
-                .add_input('Ar_eig', shape=(nodal_data['nDOF_r'], nodal_data['nDOF_r']))
-                .add_output('Q_raw', shape=(nodal_data['nDOF_r'], nodal_data['nDOF_r']))
-                .declare_partials(of='Q_raw', wrt='Ar_eig', method='jax'))
-        
         self.add_subsystem('eigenvectors',
-            om.ExplicitFuncComp(f, use_jit=True),
+            Eigenvecs(nodal_data=nodal_data),
             promotes_inputs=['Ar_eig'],
             promotes_outputs=['Q_raw'])
+
+        # def func(Ar_eig=np.eye(nodal_data['nDOF_r'])):
+        #     _, Q_raw = np.linalg.eig(Ar_eig)
+        #     return Q_raw
+        
+        # f = (omf.wrap(func)
+        #         .add_input('Ar_eig', shape=(nodal_data['nDOF_r'], nodal_data['nDOF_r']))
+        #         .add_output('Q_raw', shape=(nodal_data['nDOF_r'], nodal_data['nDOF_r']))
+        #         .declare_partials(of='Q_raw', wrt='Ar_eig'))
+        
+        # self.add_subsystem('eigenvectors',
+        #     om.ExplicitFuncComp(f, use_jit=True),
+        #     promotes_inputs=['Ar_eig'],
+        #     promotes_outputs=['Q_raw'])
 
         self.add_subsystem('eigenvectors_modal_mass',
             EigenvecsModalMass(nodal_data=nodal_data),

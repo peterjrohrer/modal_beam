@@ -1,5 +1,8 @@
 import numpy as np
-
+import scipy.signal
+import scipy.sparse
+import opt_einsum as oe
+import sparse as sps
 from openmdao.api import ExplicitComponent
 
 
@@ -24,29 +27,23 @@ class ModeshapeDOFReduce(ExplicitComponent):
     def setup_partials(self):
         nDOF_tot = self.nodal_data['nDOF_tot']
         nDOF_r = self.nodal_data['nDOF_r']
+        Tr_mask = self.nodal_data['Tr_mask']
         
-        Hrows = np.arange(nDOF_r * nDOF_r)
-        Hcols = np.arange(nDOF_tot * nDOF_tot)
-        IDOF_removed = np.array(self.nodal_data['IDOF_removed'])
+        sTr = scipy.sparse.eye(nDOF_tot, nDOF_r)
+        sTr_offD = scipy.sparse.coo_array((np.ones(len(Tr_mask[0])), (Tr_mask[0],Tr_mask[1])))
+        sTr += sTr_offD
+        sparse_dr_d = scipy.sparse.kron(sTr.T,sTr.T)
+        self.declare_partials('Mr_glob', 'M_glob',val=sparse_dr_d)
+        self.declare_partials('Kr_glob', 'K_glob',val=sparse_dr_d)
+        self.declare_partials('Mr_glob', 'K_glob', dependent=False)
+        self.declare_partials('Kr_glob', 'M_glob', dependent=False)
 
-        for i in range(len(IDOF_removed)):
-            removed_nodes = np.arange((IDOF_removed[i]*nDOF_tot),((IDOF_removed[i]+1)*nDOF_tot))
-            Hcols = np.setdiff1d(Hcols,removed_nodes)
-        for i in range(nDOF_tot):
-            removed_DOF = (i*nDOF_tot) + IDOF_removed 
-            Hcols = np.setdiff1d(Hcols,removed_DOF)
-
-        self.declare_partials('Mr_glob', 'M_glob', rows=Hrows, cols=Hcols, val=np.ones(nDOF_r * nDOF_r))
-        self.declare_partials('Kr_glob', 'K_glob', rows=Hrows, cols=Hcols, val=np.ones(nDOF_r * nDOF_r))
-
-        y1 = np.einsum('lj,ki->klij',np.eye(nDOF_r),np.ones((nDOF_r,nDOF_tot)))
-        y2 = np.einsum('kj,il->klij',np.eye(nDOF_r),np.ones((nDOF_tot,nDOF_r)))
-        b = np.reshape((y1 + y2), (nDOF_r * nDOF_r, nDOF_tot * nDOF_r))
-        self.Grows = np.nonzero(b)[0]
-        self.Gcols = np.nonzero(b)[1]
-
-        self.declare_partials('Mr_glob', 'Tr', rows=self.Grows, cols=self.Gcols)
-        self.declare_partials('Kr_glob', 'Tr', rows=self.Grows, cols=self.Gcols)
+        s_glob = scipy.sparse.diags(diagonals=np.repeat(1.,13), offsets=np.arange(-6,7), shape=(nDOF_tot,nDOF_tot), dtype=bool)
+        dTr_shape = (nDOF_r * nDOF_r, nDOF_tot * nDOF_r)
+        dr1 = oe.contract('lj,ki->klij', sps.eye(nDOF_r, dtype=bool), sps.COO((sTr.T @ s_glob))).reshape(dTr_shape)
+        dr2 = oe.contract('kj,il->klij', sps.eye(nDOF_r, dtype=bool), sps.COO((s_glob @ sTr))).reshape(dTr_shape)
+        self.declare_partials('Mr_glob', 'Tr', val=(dr1 + dr2).to_scipy_sparse())
+        self.declare_partials('Kr_glob', 'Tr', val=(dr1 + dr2).to_scipy_sparse())
 
         self.declare_partials('A_glob', 'M_glob')
         self.declare_partials('A_glob', 'K_glob')
@@ -56,40 +53,63 @@ class ModeshapeDOFReduce(ExplicitComponent):
 
         M_glob = inputs['M_glob']
         K_glob = inputs['K_glob']
-
-        Mr = (Tr.T) @ (M_glob) @ (Tr)
-        Kr = (Tr.T) @ (K_glob) @ (Tr)       
        
-        outputs['Mr_glob'] = Mr
-        outputs['Kr_glob'] = Kr
+        outputs['Mr_glob'] = (Tr.T) @ (M_glob) @ (Tr)
+        outputs['Kr_glob'] = (Tr.T) @ (K_glob) @ (Tr)
         outputs['A_glob'] = M_glob @ K_glob
 
     def compute_partials(self, inputs, partials):
         nDOF_tot = self.nodal_data['nDOF_tot']
         nDOF_r = self.nodal_data['nDOF_r']
 
-        Tr = inputs['Tr']
+        sTr = scipy.sparse.coo_array(inputs['Tr'])
+        sM_glob = scipy.sparse.coo_array(inputs['M_glob'])
+        sK_glob = scipy.sparse.coo_array(inputs['K_glob'])
 
-        M_glob = inputs['M_glob']
-        K_glob = inputs['K_glob']
+        partials['Mr_glob', 'M_glob'] = scipy.sparse.kron(sTr.T,sTr.T)
+        partials['Kr_glob', 'K_glob'] = scipy.sparse.kron(sTr.T,sTr.T)
 
-        dMr_dTr = np.zeros((nDOF_r,nDOF_r,nDOF_tot,nDOF_r))
-        dKr_dTr = np.zeros((nDOF_r,nDOF_r,nDOF_tot,nDOF_r))
-        for i in range(nDOF_tot):
-            for j in range(nDOF_r):
-                J_ij = np.zeros_like(Tr)
-                J_ij[i,j] += 1.
-                J_ji = J_ij.T
-                dMr_dTr[:,:,i,j] += (Tr.T @ M_glob @ J_ij) + (J_ji @ M_glob @ Tr)
-                dKr_dTr[:,:,i,j] += (Tr.T @ K_glob @ J_ij) + (J_ji @ K_glob @ Tr)
+        partials['A_glob', 'M_glob'] = scipy.sparse.kron(scipy.sparse.eye(nDOF_tot),sK_glob)
+        partials['A_glob', 'K_glob'] = scipy.sparse.kron(sM_glob, scipy.sparse.eye(nDOF_tot))
 
-        a = np.reshape(dMr_dTr, (nDOF_r * nDOF_r, nDOF_tot * nDOF_r))
-    
-        y1 = np.einsum('lj,ki->klij',np.eye(nDOF_r),(Tr.T @ M_glob))
-        y2 = np.einsum('kj,il->klij',np.eye(nDOF_r),(M_glob @ Tr))
-        b = np.reshape(y1+y2, (nDOF_r * nDOF_r, nDOF_tot * nDOF_r))
+        # Tr = inputs['Tr']
+        # M_glob = inputs['M_glob']
+        # K_glob = inputs['K_glob']
+        
+        # dMr_dTr = np.empty(Tr.shape, dtype=object)
+        # for i in range(nDOF_tot):
+        #     for j in range(nDOF_r):
+        #         J_ij = scipy.sparse.coo_array(scipy.signal.unit_impulse(Tr.shape,(i,j),dtype=bool))
+        #         J_ji = J_ij.T
+        #         dMr_dTr[i,j] = ((sTr.T @ sM_glob @ J_ij) + (J_ji @ sM_glob @ sTr))
 
-        partials['Mr_glob', 'Tr'] = np.reshape(b[self.Grows,self.Gcols],len(self.Grows))
-        # partials['Kr_glob', 'Tr'] = np.reshape(dKr_dTr, (nDOF_r * nDOF_r, nDOF_tot * nDOF_r))
-        partials['A_glob', 'M_glob'] = np.kron(np.eye(nDOF_tot),K_glob)
-        partials['A_glob', 'K_glob'] = np.kron(M_glob, np.eye(nDOF_tot))
+        dTr_shape = (nDOF_r * nDOF_r, nDOF_tot * nDOF_r)
+        dMr1 = oe.contract('lj,ki->klij',sps.COO(np.eye(nDOF_r)),sps.COO((sTr.T @ sM_glob))).reshape(dTr_shape)
+        dMr2 = oe.contract('kj,il->klij',sps.COO(np.eye(nDOF_r)),sps.COO((sM_glob @ sTr))).reshape(dTr_shape)
+        dMr_dTr = (dMr1 + dMr2).to_scipy_sparse()
+        dKr1 = oe.contract('lj,ki->klij',sps.COO(np.eye(nDOF_r)),sps.COO((sTr.T @ sK_glob))).reshape(dTr_shape)
+        dKr2 = oe.contract('kj,il->klij',sps.COO(np.eye(nDOF_r)),sps.COO((sK_glob @ sTr))).reshape(dTr_shape)
+        dKr_dTr = (dKr1 + dKr2).to_scipy_sparse()
+        
+        # dMr1 = np.einsum('kj,il->klij',np.eye(nDOF_r),(Tr.T @ M_glob))
+        # dMr2 = np.einsum('kj,il->klij',np.eye(nDOF_r),(M_glob @ Tr))
+        # dMr_dTr = np.reshape(dMr1+dMr2, (nDOF_r * nDOF_r, nDOF_tot * nDOF_r))
+        
+        # dMr1 = (Tr.T @ M_glob)[:,None,:,None] * np.eye(nDOF_r)[None,:,None,:]
+        # dMr2 = np.eye(nDOF_r)[:,None,None,:] * (M_glob @ Tr).T[None,:,:,None]
+        # dKr1 = (Tr.T @ K_glob)[:,None,:,None] * np.eye(nDOF_r)[None,:,None,:]
+        # dKr2 = np.eye(nDOF_r)[:,None,None,:] * (K_glob @ Tr).T[None,:,:,None]
+
+        # sMr1 = scipy.sparse.coo_array(dMr1.reshape(nDOF_r * nDOF_r, nDOF_tot * nDOF_r))
+        # sMr2 = scipy.sparse.coo_array(dMr2.reshape(nDOF_r * nDOF_r, nDOF_tot * nDOF_r))
+        # sKr1 = scipy.sparse.coo_array(dKr1.reshape(nDOF_r * nDOF_r, nDOF_tot * nDOF_r))
+        # sKr2 = scipy.sparse.coo_array(dKr2.reshape(nDOF_r * nDOF_r, nDOF_tot * nDOF_r))
+
+        # dMr_dTr = dMr1.reshape(nDOF_r * nDOF_r, nDOF_tot * nDOF_r) + dMr2.reshape(nDOF_r * nDOF_r, nDOF_tot * nDOF_r)
+
+        # dMr1 = np.kron(np.eye(nDOF_r),(Tr.T @ M_glob))
+        # dMr2 = np.kron((M_glob @ Tr), np.eye(nDOF_r)).T
+        # dMr_dTr = dMr1 + dMr2 
+
+        partials['Mr_glob', 'Tr'] = dMr_dTr
+        partials['Kr_glob', 'Tr'] = dKr_dTr
